@@ -1,0 +1,49 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'helvetica neue';
+  font-weight: lighter;
+  color: #666;
+  background: #eee;
+}
+
+.Menu {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 150px;
+  background: #666;
+  color: #eee;
+  padding: 25px;
+}
+
+.TopBar {
+  background: #1B91E0;
+  color: #eee;
+  font-size: 26px;
+  text-align: center;
+  line-height: 50px;
+}
+
+.Content {
+  position: absolute;
+  left: 150px;
+  right: 0;
+}
+
+.Body {
+  padding: 25px;
+}
+
+.App {
+  position: fixed;
+  left: 0;
+  right: -150px;
+  top: 0;
+  bottom: 0;
+}

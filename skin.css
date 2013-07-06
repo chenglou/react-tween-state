@@ -1,0 +1,908 @@
+
+/* from YUICSS buttons-core.css */
+.pure-button {
+    /* Structure */
+    display: inline-block;
+    *display: inline; /*IE 6/7*/
+    zoom: 1;
+    line-height: normal;
+    white-space: nowrap;
+    vertical-align: baseline;
+    text-align: center;
+    cursor: pointer;
+    -webkit-user-drag: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Firefox: Get rid of the inner focus border */
+.pure-button::-moz-focus-inner{
+    padding: 0;
+    border: 0;
+}
+/* end from YUICSS buttons-core.css */
+/* from YUICSS buttons.css */
+/*csslint unqualified-attributes:false*/
+
+.pure-button {
+    font-size: 100%;
+    *font-size: 90%; /*IE 6/7 - To reduce IE's oversized button text*/
+    *overflow: visible; /*IE 6/7 - Because of IE's overly large left/right padding on buttons */
+    padding: 0.5em 1.5em 0.5em;
+    color: #0e1320; /* rgba not supported (IE 8) */
+    /* color: rgba(0, 0, 0, 0.80); rgba supported */
+    /* *color: #444; IE 6 & 7 */
+    border: 1px solid #a6b3d9; /*IE 6/7/8*/
+    border: none rgba(0, 0, 0, 0); /*IE9 + everything else*/
+    background-color: #b0bcdd;
+    border-radius: 2px;
+    text-decoration: none;
+    -webkit-font-smoothing: antialiased;
+    /* Transitions */
+    -webkit-transition: 0.1s linear -webkit-box-shadow;
+    -moz-transition: 0.1s linear -moz-box-shadow;
+    -ms-transition: 0.1s linear box-shadow;
+    -o-transition: 0.1s linear box-shadow;
+    transition: 0.1s linear box-shadow;
+}
+
+.pure-button-hover,
+.pure-button:hover {
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#00000000', endColorstr='#00000000', GradientType=0);
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(transparent), color-stop(40%, rgba(0,0,0, 0.05)), to(rgba(0,0,0, 0.05)));
+    background-image: -webkit-linear-gradient(transparent, rgba(0,0,0, 0.05) 40%, rgba(0,0,0, 0.15));
+    background-image: -moz-linear-gradient(top, rgba(0,0,0, 0.05) 0%, rgba(0,0,0, 0.05));
+    background-image: -ms-linear-gradient(transparent, rgba(0,0,0, 0.05) 40%, rgba(0,0,0, 0.15));
+    background-image: -o-linear-gradient(transparent, rgba(0,0,0, 0.05) 40%, rgba(0,0,0, 0.05));
+    background-image: linear-gradient(transparent, rgba(0,0,0, 0.05) 40%, rgba(0,0,0, 0.05));
+}
+
+.pure-button-active,
+.pure-button:active {
+    box-shadow: 0 0 0 1px rgba(0,0,0, 0.15) inset, 0 0 6px rgba(0,0,0, 0.20) inset;
+}
+
+.pure-button[disabled],
+.pure-button-disabled,
+.pure-button-disabled:hover,
+.pure-button-disabled:active {
+    border: none;
+    background-image: none;
+    filter: progid:DXImageTransform.Microsoft.gradient(enabled = false);
+    filter: alpha(opacity=40);
+    -khtml-opacity: 0.40;
+    -moz-opacity: 0.40;
+    opacity: 0.40;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.pure-button-hidden {
+    display: none;
+}
+
+/* Firefox: Get rid of the inner focus border */
+.pure-button::-moz-focus-inner{
+    padding: 0;
+    border: 0;
+}
+
+.pure-button-primary,
+.pure-button-selected,
+a.pure-button-primary,
+a.pure-button-selected {
+    background-color: #3355BA;
+    color: #fbfcfe;
+}
+
+.pure-button:-moz-focusring {
+    outline-color: rgba(0, 0, 0, 0.85);
+}
+
+
+/*! Copyright 2013 Yahoo! Inc. http://yuilibrary.com/license/ */
+/* This page lists core form styles adopted from Normalize.css. */
+/*! Copyright (c) Nicolas Gallagher and Jonathan Neal */
+
+/*! normalize.css v1.1.0 | MIT License | git.io/normalize */
+
+/* This page has Normalize.css form-specific style rules applied to a .yui3-form context */
+
+/* ==========
+Forms Core
+=========*/
+
+
+/*
+ * Corrects margin displayed oddly in IE 6/7.
+ */
+
+.pure-skin-react-mobile .pure-form {
+    margin: 0;
+}
+
+/* Define consistent border, margin, and padding.*/
+ 
+
+.pure-skin-react-mobile .pure-form fieldset {
+    border: 1px solid #c0c0c0;
+    margin: 0 2px;
+    padding: 0.35em 0.625em 0.75em;
+}
+
+/*
+ * 1. Corrects color not being inherited in IE 6/7/8/9.
+ * 2. Corrects text not wrapping in Firefox 3.
+ * 3. Corrects alignment displayed oddly in IE 6/7.
+ */
+
+.pure-skin-react-mobile .pure-form legend {
+    border: 0; /* 1 */
+    padding: 0;
+    white-space: normal; /* 2 */
+    *margin-left: -7px; /* 3 */
+}
+
+/*
+ * 1. Corrects font size not being inherited in all browsers.
+ * 2. Addresses margins set differently in IE 6/7, Firefox 3+, Safari 5,
+ *    and Chrome.
+ * 3. Improves appearance and consistency in all browsers.
+ */
+
+.pure-skin-react-mobile .pure-form button,
+.pure-skin-react-mobile .pure-form input,
+.pure-skin-react-mobile .pure-form select,
+.pure-skin-react-mobile .pure-form textarea {
+    font-size: 100%; /* 1 */
+    margin: 0; /* 2 */
+    vertical-align: baseline; /* 3 */
+    *vertical-align: middle; /* 3 */
+}
+
+/*
+ * Addresses Firefox 3+ setting `line-height` on `input` using `!important` in
+ * the UA stylesheet.
+ */
+
+.pure-skin-react-mobile .pure-form button,
+.pure-skin-react-mobile .pure-form input {
+    line-height: normal;
+}
+
+/*
+ * 1. Avoid the WebKit bug in Android 4.0.* where (2) destroys native `audio`
+ *    and `video` controls.
+ * 2. Corrects inability to style clickable `input` types in iOS.
+ * 3. Improves usability and consistency of cursor style between image-type
+ *    `input` and others.
+ * 4. Removes inner spacing in IE 7 without affecting normal text inputs.
+ *    Known issue: inner spacing remains in IE 6.
+ */
+
+.pure-skin-react-mobile .pure-form button,
+.pure-skin-react-mobile .pure-form input[type="button"], /* 1 */
+.pure-skin-react-mobile .pure-form input[type="reset"],
+.pure-skin-react-mobile .pure-form input[type="submit"] {
+    -webkit-appearance: button; /* 2 */
+    cursor: pointer; /* 3 */
+    *overflow: visible;  /* 4 */
+}
+
+/*
+ * Re-set default cursor for disabled elements.
+ */
+
+.pure-skin-react-mobile .pure-form button[disabled],
+.pure-skin-react-mobile .pure-form input[disabled] {
+    cursor: default;
+}
+
+/*
+ * 1. Addresses box sizing set to content-box in IE 8/9.
+ * 2. Removes excess padding in IE 8/9.
+ * 3. Removes excess padding in IE 7.
+ *    Known issue: excess padding remains in IE 6.
+ */
+
+.pure-skin-react-mobile .pure-form input[type="checkbox"],
+.pure-skin-react-mobile .pure-form input[type="radio"] {
+    box-sizing: border-box; /* 1 */
+    padding: 0; /* 2 */
+    *height: 13px; /* 3 */
+    *width: 13px; /* 3 */
+}
+
+/*
+ * 1. Addresses `appearance` set to `searchfield` in Safari 5 and Chrome.
+ * 2. Addresses `box-sizing` set to `border-box` in Safari 5 and Chrome
+ *    (include `-moz` to future-proof).
+ */
+
+.pure-skin-react-mobile .pure-form input[type="search"] {
+    -webkit-appearance: textfield; /* 1 */
+    -moz-box-sizing: content-box;
+    -webkit-box-sizing: content-box; /* 2 */
+    box-sizing: content-box;
+}
+
+/*
+ * Removes inner padding and search cancel button in Safari 5 and Chrome
+ * on OS X.
+ */
+
+.pure-skin-react-mobile .pure-form input[type="search"]::-webkit-search-cancel-button,
+.pure-skin-react-mobile .pure-form input[type="search"]::-webkit-search-decoration {
+    -webkit-appearance: none;
+}
+
+/*
+ * Removes inner padding and border in Firefox 3+.
+ */
+
+.pure-skin-react-mobile .pure-form button::-moz-focus-inner,
+.pure-skin-react-mobile .pure-form input::-moz-focus-inner {
+    border: 0;
+    padding: 0;
+}
+
+/*
+ * 1. Removes default vertical scrollbar in IE 6/7/8/9.
+ * 2. Improves readability and alignment in all browsers.
+ */
+
+.pure-skin-react-mobile .pure-form textarea {
+    overflow: auto; /* 1 */
+    vertical-align: top; /* 2 */
+}
+/* ===============  forms-responsive.css ================
+
+=========================================================*/
+@media only screen and (max-width : 480px) {
+    .pure-skin-react-mobile .pure-form button[type="submit"] {
+    margin: 0.7em 0 0;
+    }
+
+    .pure-skin-react-mobile .pure-form input[type="text"],
+    .pure-skin-react-mobile .pure-form input[type="password"],
+    .pure-skin-react-mobile .pure-form input[type="email"],
+    .pure-skin-react-mobile .pure-form input[type="url"],
+    .pure-skin-react-mobile .pure-form input[type="date"],
+    .pure-skin-react-mobile .pure-form input[type="month"],
+    .pure-skin-react-mobile .pure-form input[type="time"],
+    .pure-skin-react-mobile .pure-form input[type="datetime"],
+    .pure-skin-react-mobile .pure-form input[type="datetime-local"],
+    .pure-skin-react-mobile .pure-form input[type="week"],
+    .pure-skin-react-mobile .pure-form input[type="number"],
+    .pure-skin-react-mobile .pure-form input[type="search"],
+    .pure-skin-react-mobile .pure-form input[type="tel"],
+    .pure-skin-react-mobile .pure-form input[type="color"],
+    .pure-skin-react-mobile .pure-form label {
+        margin-bottom: 0.3em;
+        display: block;
+    }
+    
+    .pure-skin-react-mobile .pure-group input[type="text"],
+    .pure-skin-react-mobile .pure-group input[type="password"],
+    .pure-skin-react-mobile .pure-group input[type="email"],
+    .pure-skin-react-mobile .pure-group input[type="url"],
+    .pure-skin-react-mobile .pure-group input[type="date"],
+    .pure-skin-react-mobile .pure-group input[type="month"],
+    .pure-skin-react-mobile .pure-group input[type="time"],
+    .pure-skin-react-mobile .pure-group input[type="datetime"],
+    .pure-skin-react-mobile .pure-group input[type="datetime-local"],
+    .pure-skin-react-mobile .pure-group input[type="week"],
+    .pure-skin-react-mobile .pure-group input[type="number"],
+    .pure-skin-react-mobile .pure-group input[type="search"],
+    .pure-skin-react-mobile .pure-group input[type="tel"],
+    .pure-skin-react-mobile .pure-group input[type="color"] {
+        margin-bottom: 0;
+    }
+
+    .pure-skin-react-mobile .pure-form-aligned .pure-control-group label {
+        margin-bottom: 0.3em;
+        text-align: left;
+        display: block;
+        width: 100%;
+    }
+
+    .pure-skin-react-mobile .pure-form-aligned .pure-controls {
+        margin: 1.5em 0 0 0;
+    }
+
+    /* NOTE: pure-help-inline is deprecated. Use .pure-form-message-inline instead. */
+    .pure-skin-react-mobile .pure-form .pure-help-inline,
+    .pure-skin-react-mobile .pure-form-message-inline,
+    .pure-skin-react-mobile .pure-form-message {
+        display: block;
+        font-size: 80%;
+        /* increased bottom padding to make it group with its related input element */
+        padding: 0.2em 0 0.8em;
+    }
+}
+
+/* ===============  forms.css ================
+
+=========================================================*/
+.pure-skin-react-mobile .pure-form input[type="text"],
+.pure-skin-react-mobile .pure-form input[type="password"],
+.pure-skin-react-mobile .pure-form input[type="email"],
+.pure-skin-react-mobile .pure-form input[type="url"],
+.pure-skin-react-mobile .pure-form input[type="date"],
+.pure-skin-react-mobile .pure-form input[type="month"],
+.pure-skin-react-mobile .pure-form input[type="time"],
+.pure-skin-react-mobile .pure-form input[type="datetime"],
+.pure-skin-react-mobile .pure-form input[type="datetime-local"],
+.pure-skin-react-mobile .pure-form input[type="week"],
+.pure-skin-react-mobile .pure-form input[type="number"],
+.pure-skin-react-mobile .pure-form input[type="search"],
+.pure-skin-react-mobile .pure-form input[type="tel"],
+.pure-skin-react-mobile .pure-form input[type="color"],
+.pure-skin-react-mobile .pure-form select,
+.pure-skin-react-mobile .pure-form textarea {
+    padding: 0.5em 0.6em;
+    display: inline-block;
+    border: 1px solid #e6e6e6;
+    font-size: 0.8em;
+    box-shadow: inset 0 1px 3px #e6e6e6;
+    border-radius: 4px;
+    -webkit-transition: 0.3s linear border;
+    -moz-transition: 0.3s linear border;
+    -ms-transition: 0.3s linear border;
+    -o-transition: 0.3s linear border;
+    transition: 0.3s linear border;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+}
+
+.pure-skin-react-mobile .pure-form input[type="text"]:focus,
+.pure-skin-react-mobile .pure-form input[type="password"]:focus,
+.pure-skin-react-mobile .pure-form input[type="email"]:focus,
+.pure-skin-react-mobile .pure-form input[type="url"]:focus,
+.pure-skin-react-mobile .pure-form input[type="date"]:focus,
+.pure-skin-react-mobile .pure-form input[type="month"]:focus,
+.pure-skin-react-mobile .pure-form input[type="time"]:focus,
+.pure-skin-react-mobile .pure-form input[type="datetime"]:focus,
+.pure-skin-react-mobile .pure-form input[type="datetime-local"]:focus,
+.pure-skin-react-mobile .pure-form input[type="week"]:focus,
+.pure-skin-react-mobile .pure-form input[type="number"]:focus,
+.pure-skin-react-mobile .pure-form input[type="search"]:focus,
+.pure-skin-react-mobile .pure-form input[type="tel"]:focus,
+.pure-skin-react-mobile .pure-form input[type="color"]:focus,
+.pure-skin-react-mobile .pure-form select:focus,
+.pure-skin-react-mobile .pure-form textarea:focus {
+  outline: 0;
+  outline: thin dotted \9; /* IE6-9 */
+  border-color: #129FEA;
+}
+
+.pure-skin-react-mobile .pure-form input[type="file"]:focus,
+.pure-skin-react-mobile .pure-form input[type="radio"]:focus,
+.pure-skin-react-mobile .pure-form input[type="checkbox"]:focus {
+  outline: thin dotted #333;
+  outline: 1px auto #129FEA;
+}
+.pure-skin-react-mobile .pure-form .pure-checkbox,
+.pure-skin-react-mobile .pure-form .pure-radio {
+  margin: 0.5em 0;
+  display: block;
+}
+.pure-skin-react-mobile .pure-form input[type="text"][disabled],
+.pure-skin-react-mobile .pure-form input[type="password"][disabled],
+.pure-skin-react-mobile .pure-form input[type="email"][disabled],
+.pure-skin-react-mobile .pure-form input[type="url"][disabled],
+.pure-skin-react-mobile .pure-form input[type="date"][disabled],
+.pure-skin-react-mobile .pure-form input[type="month"][disabled],
+.pure-skin-react-mobile .pure-form input[type="time"][disabled],
+.pure-skin-react-mobile .pure-form input[type="datetime"][disabled],
+.pure-skin-react-mobile .pure-form input[type="datetime-local"][disabled],
+.pure-skin-react-mobile .pure-form input[type="week"][disabled],
+.pure-skin-react-mobile .pure-form input[type="number"][disabled],
+.pure-skin-react-mobile .pure-form input[type="search"][disabled],
+.pure-skin-react-mobile .pure-form input[type="tel"][disabled],
+.pure-skin-react-mobile .pure-form input[type="color"][disabled],
+.pure-skin-react-mobile .pure-form select[disabled],
+.pure-skin-react-mobile .pure-form textarea[disabled],
+.pure-skin-react-mobile .pure-form input[readonly],
+.pure-skin-react-mobile .pure-form select[readonly],
+.pure-skin-react-mobile .pure-form textarea[readonly] {
+  cursor: not-allowed;
+  box-shadow: inset 0 1px 10px #ededed;
+  background-color: #fff;
+  color: #adadad;
+  border-color: #e6e6e6;
+}
+.pure-skin-react-mobile .pure-form input:focus:invalid,
+.pure-skin-react-mobile .pure-form textarea:focus:invalid,
+.pure-skin-react-mobile .pure-form select:focus:invalid {
+  color: #b94a48;
+  border: 1px solid #ee5f5b;
+}
+.pure-skin-react-mobile .pure-form input:focus:invalid:focus,
+.pure-skin-react-mobile .pure-form textarea:focus:invalid:focus,
+.pure-skin-react-mobile .pure-form select:focus:invalid:focus {
+  border-color: #e9322d;
+}
+.pure-skin-react-mobile .pure-form input[type="file"]:focus:invalid:focus,
+.pure-skin-react-mobile .pure-form input[type="radio"]:focus:invalid:focus,
+.pure-skin-react-mobile .pure-form input[type="checkbox"]:focus:invalid:focus {
+  outline-color: #e9322d;
+}
+.pure-skin-react-mobile .pure-form select {
+  border: 1px solid #e6e6e6;
+  background-color: white;
+}
+.pure-skin-react-mobile .pure-form select[multiple] {
+  height: auto;
+}
+.pure-skin-react-mobile .pure-form label {
+  margin: 0.5em 0 0.2em;
+  color: #4f4f4f;
+  font-size:90%;
+}
+.pure-skin-react-mobile .pure-form fieldset {
+  margin: 0;
+  padding: 0.35em 0 0.75em;
+  border: 0;
+}
+.pure-skin-react-mobile .pure-form legend {
+  display: block;
+  width: 100%;
+  padding: 0.3em 0;
+  margin-bottom: 0.3em;
+  font-size: 125%;
+  color: #262626;
+  border-bottom: 1px solid #ededed;
+}
+
+.pure-skin-react-mobile .pure-form-stacked label {
+  display: block;
+}
+
+.pure-skin-react-mobile .pure-form-aligned input,
+.pure-skin-react-mobile .pure-form-aligned textarea,
+.pure-skin-react-mobile .pure-form-aligned select,
+.pure-skin-react-mobile .pure-form-aligned .pure-help-inline, /* note: pure-help-inline is deprecated. Use .pure-form-message-inline instead */ 
+.pure-form-message-inline {
+  display: inline-block;
+  *display: inline; /* IE7 inline-block hack */
+  *zoom: 1;
+  vertical-align: middle;
+}
+
+/* aligned Forms */
+.pure-skin-react-mobile .pure-form-aligned .pure-control-group {
+  margin-bottom: 0.5em;
+}
+.pure-skin-react-mobile .pure-form-aligned .pure-control-group label {
+  text-align: right;
+  display: inline-block;
+  vertical-align: middle;
+  width: 10em;
+  margin: 0 1em 0 0;
+}
+.pure-skin-react-mobile .pure-form-aligned .pure-controls {
+  margin: 1.5em 0 0 10em;
+}
+
+/* Rounded Inputs */
+.pure-skin-react-mobile .pure-form .pure-input-rounded {
+  border-radius: 30px;
+  padding-left: 1em;
+}
+
+/* Grouped Inputs */
+.pure-skin-react-mobile .pure-form .pure-group fieldset {
+  margin-bottom: 10px;
+}
+.pure-skin-react-mobile .pure-form .pure-group input {
+  display: block;
+  padding: 0.5em 0.6em;
+  margin: 0;
+  border-radius: 0;
+  position: relative;
+  top: -1px;
+}
+.pure-skin-react-mobile .pure-form .pure-group input:focus {
+  z-index: 2;
+}
+.pure-skin-react-mobile .pure-form .pure-group input:first-child {
+  top: 1px;
+  border-radius: 4px 4px 0px 0px;
+}
+.pure-skin-react-mobile .pure-form .pure-group input:last-child {
+  top: -2px;
+  border-radius: 0px 0px 4px 4px;
+}
+.pure-skin-react-mobile .pure-form .pure-group button {
+  margin: 0.35em 0;
+}
+
+.pure-skin-react-mobile .pure-form .pure-input-1 {
+  width: 100%;
+}
+.pure-skin-react-mobile .pure-form .pure-input-2-3 {
+  width: 66%;
+}
+.pure-skin-react-mobile .pure-form .pure-input-1-2 {
+  width: 50%;
+}
+.pure-skin-react-mobile .pure-form .pure-input-1-3 {
+  width: 33%;
+}
+.pure-skin-react-mobile .pure-form .pure-input-1-4 {
+  width: 25%;
+}
+
+/* Inline help for forms */
+/* Note: pure-help-inline is deprecated. Use .pure-form-message-inline instead */ 
+.pure-skin-react-mobile .pure-form .pure-help-inline,
+.pure-skin-react-mobile .pure-form-message-inline {
+  display: inline-block;
+  padding-left: 0.3em;
+  color: #adadad;
+  font-size: 90%;
+  vertical-align: middle;
+}
+
+/* Block help for forms */
+.pure-skin-react-mobile .pure-form-message {
+  display: block;
+  margin: .5em 0 .2em;
+  color: #adadad;
+  font-size: 90%;
+}
+
+/* foundational CSS */
+.pure-skin-react-mobile .pure-table {
+    /* Remove spacing between table cells (from Normalize.css) */
+    border-collapse: separate;
+    border-spacing: 0;
+    empty-cells: show;
+    border: 1px solid #e6eaf4;
+}
+
+.pure-skin-react-mobile .pure-table caption {
+    color: #adadad;
+    font: italic 85%/1 arial, sans-serif;
+    padding: 1em 0;
+    text-align: center;
+}
+
+.pure-skin-react-mobile .pure-table td,
+.pure-skin-react-mobile .pure-table th {
+    border-left: 1px solid #e6eaf4;/* inner column border */
+    border-width: 0 0 0 1px;
+    font-size: inherit;
+    margin: 0;
+    overflow: visible; /*to make ths where the title is really long work*/
+    padding: 0.3em 0.6em; /* cell padding */
+}
+
+.pure-skin-react-mobile .pure-table td:first-child,
+.pure-skin-react-mobile .pure-table th:first-child {
+    border-left-width: 0;
+}
+
+.pure-skin-react-mobile .pure-table thead {
+    background-color: #d1d7eb;
+    color: #1c2440;
+    text-align: left;
+    vertical-align: bottom;
+    white-space: nowrap;
+}
+
+/*
+striping:
+even - #fff (white)
+odd - #edf5ff (light blue)
+*/
+.pure-skin-react-mobile .pure-table td {
+    background-color: #f1f3f9;
+    color: #344579;
+}
+.pure-skin-react-mobile .pure-table-odd td {
+    background-color: #e6eaf4;
+    color: #273259;
+}
+
+/* BORDERED TABLES */
+.pure-skin-react-mobile .pure-table-bordered td {
+    border-bottom:1px solid #e6eaf4;
+}
+.pure-skin-react-mobile .pure-table-bordered tbody > tr:last-child td,
+.pure-skin-react-mobile .pure-table-horizontal tbody > tr:last-child td {
+    border-bottom-width: 0;
+}
+
+/* HORIZONTAL BORDERED TABLES */
+.pure-skin-react-mobile .pure-table-horizontal td,
+.pure-skin-react-mobile .pure-table-horizontal th {
+    border-width: 0 0 1px 0;
+    border-bottom:1px solid #e6eaf4;
+}
+.pure-skin-react-mobile .pure-table-horizontal tbody > tr:last-child td {
+    border-bottom-width: 0;
+}
+
+/* from YUICSS list-core.css */
+/*csslint adjoining-classes:false, outline-none:false*/
+/*TODO: Remove this lint rule override after a refactor of this code.*/ 
+
+.pure-skin-react-mobile .pure-menu ul {
+    position: absolute;
+    visibility: hidden;
+}
+
+.pure-skin-react-mobile .pure-menu.pure-menu-open {
+    visibility: visible;
+    z-index: 2;
+    width: 100%;
+}
+
+.pure-skin-react-mobile .pure-menu ul {
+    left: -10000px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    top: -10000px;
+    z-index: 1;
+}
+
+.pure-skin-react-mobile .pure-menu > ul { position: relative; }
+
+.pure-skin-react-mobile .pure-menu-open > ul {
+    left: 0;
+    top: 0;
+    visibility: visible;
+}
+
+.pure-skin-react-mobile .pure-menu-open > ul:focus {
+    outline: none;
+}
+
+.pure-skin-react-mobile .pure-menu li {
+    position: relative;
+}
+
+.pure-skin-react-mobile .pure-menu a, .pure-skin-react-mobile .pure-menu .pure-menu-heading {
+    display: block;
+    color: inherit;
+    line-height: 1.5em;
+    padding: 0.35em 1.4em;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.pure-skin-react-mobile .pure-menu.pure-menu-horizontal > .pure-menu-heading {
+    display: inline-block;
+    *display: inline;
+    zoom: 1;
+    margin: 0;
+    vertical-align: middle;
+}
+.pure-skin-react-mobile .pure-menu.pure-menu-horizontal > ul {
+    display: inline-block;
+    *display: inline;
+    zoom: 1;
+    vertical-align: middle;
+    height: 2.4em;
+}
+
+.pure-skin-react-mobile .pure-menu li a { padding: 0.35em 1.4em; }
+
+.pure-skin-react-mobile .pure-menu-can-have-children > .pure-menu-label:after {
+    content: '\25B8';
+    float: right;
+    font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'DejaVu Sans', sans-serif; /* These specific fonts have the Unicode char we need. */
+    margin-right: -20px;
+    margin-top: -1px;
+}
+
+.pure-skin-react-mobile .pure-menu-can-have-children > .pure-menu-label {
+    padding-right: 30px;
+}
+
+.pure-skin-react-mobile .pure-menu-separator {
+    background-color: #e6eaf4;
+    display: block;
+    height: 1px;
+    font-size: 0;
+    margin: 7px 2px;
+    overflow: hidden;
+}
+
+.pure-skin-react-mobile .pure-menu-hidden {
+    display: none;
+}
+
+/* FIXED MENU */
+.pure-skin-react-mobile .pure-menu-fixed {
+    position: fixed;
+    top:0;
+    left:0;
+    width: 100%;
+}
+
+
+/* HORIZONTAL MENU CODE */
+
+/* Initial menus should be inline-block so that they are horizontal */
+.pure-skin-react-mobile .pure-menu-horizontal li {
+    display: inline-block;
+    *display: inline;
+    zoom: 1;
+    vertical-align: middle;
+}
+
+/* Submenus should still be display:block; */
+.pure-skin-react-mobile .pure-menu-horizontal li li {
+    display: block;
+}
+
+/* Content after should be down arrow */
+.pure-skin-react-mobile .pure-menu-horizontal > .pure-menu-children > .pure-menu-can-have-children > .pure-menu-label:after {
+    content: "\25BE";
+}
+/*Add extra padding to elements that have the arrow so that the hover looks nice */
+.pure-skin-react-mobile .pure-menu-horizontal > .pure-menu-children > .pure-menu-can-have-children > .pure-menu-label {
+    padding-right:30px;
+}
+
+/* Adjusting separator for vertical menus */
+.pure-skin-react-mobile .pure-menu-horizontal li.pure-menu-separator {
+    height: 50%;
+    width: 1px;
+    margin: 0 7px;
+}
+
+/* Submenus should be horizontal separator again */
+.pure-skin-react-mobile .pure-menu-horizontal li li.pure-menu-separator {
+height: 1px;
+width: auto;
+margin: 7px 2px;
+}
+
+
+/* end from yuicss/list-core.css *******************************************/
+/* from yuicss list-paginator.css */
+/*csslint box-model:false*/
+/*TODO: Remove this lint rule override after a refactor of this code.*/ 
+
+.pure-skin-react-mobile .pure-paginator {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.pure-skin-react-mobile .pure-paginator li {
+    display: inline-block;
+    *display: inline;
+    zoom: 1;
+    margin: 0 -0.35em 0 0;
+}
+.pure-skin-react-mobile .pure-paginator .pure-button {
+    border-radius: 0;
+    padding: 0.8em 1.4em;
+    vertical-align: top;
+    height: 1.1em;
+}
+.pure-skin-react-mobile .pure-paginator .pure-button:focus {
+    outline-style: none;
+}
+.pure-skin-react-mobile .pure-paginator .prev, .pure-skin-react-mobile .pure-paginator .next {
+    /*color: #C0C1C3; allow .pure-button to color text*/
+}
+.pure-skin-react-mobile .pure-paginator .prev {
+    border-radius: 4px 0px 0px 4px;
+}
+.pure-skin-react-mobile .pure-paginator .next {
+    border-radius: 0px 4px 4px 0px;
+}
+/* end from YUICSS list-paginator.css ******************************/
+/* from YUICSS list.css *******************************************/
+/* MAIN MENU STYLING */
+/*csslint adjoining-classes:false*/
+/*TODO: Remove this lint rule override after a refactor of this code.*/ 
+
+.pure-skin-react-mobile .pure-menu.pure-menu-open,
+.pure-skin-react-mobile .pure-menu.pure-menu-horizontal li .pure-menu-children {
+    background: #f1f3f9; /* Old browsers */
+    border: 1px solid #e6eaf4;
+}
+
+/* remove borders for horizontal menus */
+.pure-skin-react-mobile .pure-menu.pure-menu-horizontal,
+.pure-skin-react-mobile .pure-menu.pure-menu-horizontal .pure-menu-heading {
+    border: none;
+}
+
+
+
+/* LINK STYLES */
+
+.pure-skin-react-mobile .pure-menu a {
+    border: 1px solid transparent;
+    border-left: none;
+    border-right: none;
+
+}
+
+.pure-skin-react-mobile .pure-menu a,
+.pure-skin-react-mobile .pure-menu .pure-menu-can-have-children > li:after {
+    color: #344579;
+}
+
+.pure-skin-react-mobile .pure-menu .pure-menu-can-have-children > li:hover:after {
+    color: #273259;
+}
+
+/* Focus style for a dropdown menu-item when the parent has been opened */
+.pure-skin-react-mobile .pure-menu .pure-menu-open {
+    background: #d8ddee;
+}
+
+/* HOVER STATES */
+.pure-skin-react-mobile .pure-menu li a:hover {
+    background: #d8ddee;
+}
+
+/* DISABLED STATES */
+.pure-skin-react-mobile .pure-menu li.pure-menu-disabled a:hover {
+    background: #f1f3f9;
+    color: #97a6d3;
+}
+
+.pure-skin-react-mobile .pure-menu .pure-menu-disabled > a {
+    background-image: none;
+    border-color: transparent;
+    cursor: default;
+}
+
+.pure-skin-react-mobile .pure-menu .pure-menu-disabled > a,
+.pure-skin-react-mobile .pure-menu .pure-menu-can-have-children.pure-menu-disabled > a:after {
+    color: #97a6d3;
+}
+
+/* HEADINGS */
+.pure-skin-react-mobile .pure-menu .pure-menu-heading {
+    color: #171f36;
+    text-transform: uppercase;
+    font-size: 90%;
+    margin-top: 0.5em;
+    border-bottom: solid 1px #e6eaf4;
+}
+
+
+/* SELECTED MENU ITEM */
+.pure-skin-react-mobile .pure-menu li.pure-menu-selected a {
+    background-color: #3355BA;
+    color: #fbfcfe;
+}
+
+/* FIXED MENU */
+.pure-skin-react-mobile .pure-menu.pure-menu-open.pure-menu-fixed {
+    border: none;
+    border-bottom: 1px solid #e6eaf4;
+}
+/* end from YUICSS list.css ***********************************/
+/* from YUICSS list-responsive.css ****************************/
+/* RESPONSIVE */
+
+@media (max-width: 480px) {
+
+    .pure-skin-react-mobile .pure-menu-horizontal {
+        width:100%;
+    }
+
+    .pure-skin-react-mobile .pure-menu-children li {
+        display: block;
+        border-bottom:1px solid #e6eaf4;
+    }
+
+}
+/* end from list-responsive.css ******************/
+

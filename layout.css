@@ -47,3 +47,13 @@ body {
   top: 0;
   bottom: 0;
 }
+
+.Button {
+  display: block;
+  color: white;
+  cursor: pointer;
+  text-decoration: none;
+  left: 0;
+  margin-left: 25px;
+  position: absolute;
+}

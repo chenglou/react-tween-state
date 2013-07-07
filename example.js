@@ -8,8 +8,9 @@ function clamp(n, min, max) {
   return Math.min(Math.max(n, min), max);
 }
 
-function round(n, min, max) {
-  if (Math.abs(n - min) > Math.abs(n - max)) {
+function round(n, min, max, pct) {
+  pct = pct || .5;
+  if (n > min + (max - min) * pct) {
     return max;
   } else {
     return min;
@@ -40,8 +41,12 @@ var App = React.createClass({
     return false;
   },
   handleTouchEnd: function(e) {
-    var desiredPos = round(this.state.pos, -150, 0);
+    var desiredPos = round(this.state.pos, -150, 0, .33);
     this.tween().to({pos: desiredPos}, 200, EasingFunctions.easeInOutCubic); //createjs.Ease.bounceOut);
+    return false;
+  },
+  handleOpen: function() {
+    this.tween().to({pos: this.state.pos === 0 ? -150 : 0}, 200, EasingFunctions.easeInOutCubic);
     return false;
   },
   getStyle: function() {
@@ -61,7 +66,16 @@ var App = React.createClass({
           Menu
         </div>
         <div class="Content">
-          <div class="TopBar">Top bar</div>
+          <div class="TopBar">
+            <a
+                href="javascript:;"
+                class="Button"
+                role="button"
+                onTouchTap={this.handleOpen}>
+              <i class="icon-reorder"></i>
+            </a>
+            Top bar
+          </div>
           <div class="Body">
             Body
           </div>

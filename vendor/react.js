@@ -38,6 +38,7 @@ var React = {
   DOM: ReactDOM,
   Props: ReactProps,
   initializeTouchEvents: function(shouldUseTouch) {
+    ReactDefaultInjection.injectTouch();
     ReactMount.useTouchEvents = shouldUseTouch;
   },
   autoBind: ReactCompositeComponent.autoBind,
@@ -52,7 +53,889 @@ var React = {
 
 module.exports = React;
 
-},{"./ReactCompositeComponent":2,"./ReactComponent":3,"./ReactDOM":4,"./ReactMount":5,"./ReactProps":6,"./ReactServerRendering":7,"./ReactDefaultInjection":8}],3:[function(require,module,exports){
+},{"./ReactCompositeComponent":2,"./ReactComponent":3,"./ReactDOM":4,"./ReactMount":5,"./ReactProps":6,"./ReactServerRendering":7,"./ReactDefaultInjection":8}],2:[function(require,module,exports){
+(function(){/**
+ * Copyright 2013 Facebook, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @providesModule ReactCompositeComponent
+ */
+
+"use strict";
+
+var ReactComponent = require("./ReactComponent");
+var ReactCurrentOwner = require("./ReactCurrentOwner");
+var ReactOwner = require("./ReactOwner");
+var ReactPropTransferer = require("./ReactPropTransferer");
+var ReactUpdates = require("./ReactUpdates");
+
+var invariant = require("./invariant");
+var keyMirror = require("./keyMirror");
+var merge = require("./merge");
+var mixInto = require("./mixInto");
+
+/**
+ * Policies that describe methods in `ReactCompositeComponentInterface`.
+ */
+var SpecPolicy = keyMirror({
+  /**
+   * These methods may be defined only once by the class specification or mixin.
+   */
+  DEFINE_ONCE: null,
+  /**
+   * These methods may be defined by both the class specification and mixins.
+   * Subsequent definitions will be chained. These methods must return void.
+   */
+  DEFINE_MANY: null,
+  /**
+   * These methods are overriding the base ReactCompositeComponent class.
+   */
+  OVERRIDE_BASE: null
+});
+
+/**
+ * Composite components are higher-level components that compose other composite
+ * or native components.
+ *
+ * To create a new type of `ReactCompositeComponent`, pass a specification of
+ * your new class to `React.createClass`. The only requirement of your class
+ * specification is that you implement a `render` method.
+ *
+ *   var MyComponent = React.createClass({
+ *     render: function() {
+ *       return <div>Hello World</div>;
+ *     }
+ *   });
+ *
+ * The class specification supports a specific protocol of methods that have
+ * special meaning (e.g. `render`). See `ReactCompositeComponentInterface` for
+ * more the comprehensive protocol. Any other properties and methods in the
+ * class specification will available on the prototype.
+ *
+ * @interface ReactCompositeComponentInterface
+ * @internal
+ */
+var ReactCompositeComponentInterface = {
+
+  /**
+   * An array of Mixin objects to include when defining your component.
+   *
+   * @type {array}
+   * @optional
+   */
+  mixins: SpecPolicy.DEFINE_MANY,
+
+  /**
+   * Definition of props for this component.
+   *
+   * @type {array}
+   * @optional
+   */
+  props: SpecPolicy.DEFINE_ONCE,
+
+
+
+  // ==== Definition methods ====
+
+  /**
+   * Invoked when the component is mounted. Values in the mapping will be set on
+   * `this.props` if that prop is not specified (i.e. using an `in` check).
+   *
+   * This method is invoked before `getInitialState` and therefore cannot rely
+   * on `this.state` or use `this.setState`.
+   *
+   * @return {object}
+   * @optional
+   */
+  getDefaultProps: SpecPolicy.DEFINE_ONCE,
+
+  /**
+   * Invoked once before the component is mounted. The return value will be used
+   * as the initial value of `this.state`.
+   *
+   *   getInitialState: function() {
+   *     return {
+   *       isOn: false,
+   *       fooBaz: new BazFoo()
+   *     }
+   *   }
+   *
+   * @return {object}
+   * @optional
+   */
+  getInitialState: SpecPolicy.DEFINE_ONCE,
+
+  /**
+   * Uses props from `this.props` and state from `this.state` to render the
+   * structure of the component.
+   *
+   * No guarantees are made about when or how often this method is invoked, so
+   * it must not have side effects.
+   *
+   *   render: function() {
+   *     var name = this.props.name;
+   *     return <div>Hello, {name}!</div>;
+   *   }
+   *
+   * @return {ReactComponent}
+   * @nosideeffects
+   * @required
+   */
+  render: SpecPolicy.DEFINE_ONCE,
+
+
+
+  // ==== Delegate methods ====
+
+  /**
+   * Invoked when the component is initially created and about to be mounted.
+   * This may have side effects, but any external subscriptions or data created
+   * by this method must be cleaned up in `componentWillUnmount`.
+   *
+   * @optional
+   */
+  componentWillMount: SpecPolicy.DEFINE_MANY,
+
+  /**
+   * Invoked when the component has been mounted and has a DOM representation.
+   * However, there is no guarantee that the DOM node is in the document.
+   *
+   * Use this as an opportunity to operate on the DOM when the component has
+   * been mounted (initialized and rendered) for the first time.
+   *
+   * @param {DOMElement} rootNode DOM element representing the component.
+   * @optional
+   */
+  componentDidMount: SpecPolicy.DEFINE_MANY,
+
+  /**
+   * Invoked before the component receives new props.
+   *
+   * Use this as an opportunity to react to a prop transition by updating the
+   * state using `this.setState`. Current props are accessed via `this.props`.
+   *
+   *   componentWillReceiveProps: function(nextProps) {
+   *     this.setState({
+   *       likesIncreasing: nextProps.likeCount > this.props.likeCount
+   *     });
+   *   }
+   *
+   * NOTE: There is no equivalent `componentWillReceiveState`. An incoming prop
+   * transition may cause a state change, but the opposite is not true. If you
+   * need it, you are probably looking for `componentWillUpdate`.
+   *
+   * @param {object} nextProps
+   * @optional
+   */
+  componentWillReceiveProps: SpecPolicy.DEFINE_MANY,
+
+  /**
+   * Invoked while deciding if the component should be updated as a result of
+   * receiving new props and state.
+   *
+   * Use this as an opportunity to `return false` when you're certain that the
+   * transition to the new props and state will not require a component update.
+   *
+   *   shouldComponentUpdate: function(nextProps, nextState) {
+   *     return !equal(nextProps, this.props) || !equal(nextState, this.state);
+   *   }
+   *
+   * @param {object} nextProps
+   * @param {?object} nextState
+   * @return {boolean} True if the component should update.
+   * @optional
+   */
+  shouldComponentUpdate: SpecPolicy.DEFINE_ONCE,
+
+  /**
+   * Invoked when the component is about to update due to a transition from
+   * `this.props` and `this.state` to `nextProps` and `nextState`.
+   *
+   * Use this as an opportunity to perform preparation before an update occurs.
+   *
+   * NOTE: You **cannot** use `this.setState()` in this method.
+   *
+   * @param {object} nextProps
+   * @param {?object} nextState
+   * @param {ReactReconcileTransaction} transaction
+   * @optional
+   */
+  componentWillUpdate: SpecPolicy.DEFINE_MANY,
+
+  /**
+   * Invoked when the component's DOM representation has been updated.
+   *
+   * Use this as an opportunity to operate on the DOM when the component has
+   * been updated.
+   *
+   * @param {object} prevProps
+   * @param {?object} prevState
+   * @param {DOMElement} rootNode DOM element representing the component.
+   * @optional
+   */
+  componentDidUpdate: SpecPolicy.DEFINE_MANY,
+
+  /**
+   * Invoked when the component is about to be removed from its parent and have
+   * its DOM representation destroyed.
+   *
+   * Use this as an opportunity to deallocate any external resources.
+   *
+   * NOTE: There is no `componentDidUnmount` since your component will have been
+   * destroyed by that point.
+   *
+   * @optional
+   */
+  componentWillUnmount: SpecPolicy.DEFINE_MANY,
+
+
+
+  // ==== Advanced methods ====
+
+  /**
+   * Updates the component's currently mounted DOM representation.
+   *
+   * By default, this implements React's rendering and reconciliation algorithm.
+   * Sophisticated clients may wish to override this.
+   *
+   * @param {ReactReconcileTransaction} transaction
+   * @internal
+   * @overridable
+   */
+  updateComponent: SpecPolicy.OVERRIDE_BASE
+
+};
+
+/**
+ * Mapping from class specification keys to special processing functions.
+ *
+ * Although these are declared in the specification when defining classes
+ * using `React.createClass`, they will not be on the component's prototype.
+ */
+var RESERVED_SPEC_KEYS = {
+  displayName: function(Constructor, displayName) {
+    Constructor.displayName = displayName;
+  },
+  mixins: function(Constructor, mixins) {
+    if (mixins) {
+      for (var i = 0; i < mixins.length; i++) {
+        mixSpecIntoComponent(Constructor, mixins[i]);
+      }
+    }
+  },
+  props: function(Constructor, props) {
+    Constructor.propDeclarations = props;
+  }
+};
+
+function validateMethodOverride(proto, name) {
+  var specPolicy = ReactCompositeComponentInterface[name];
+
+  // Disallow overriding of base class methods unless explicitly allowed.
+  if (ReactCompositeComponentMixin.hasOwnProperty(name)) {
+    invariant(
+      specPolicy === SpecPolicy.OVERRIDE_BASE,
+      'ReactCompositeComponentInterface: You are attempting to override ' +
+      '`%s` from your class specification. Ensure that your method names ' +
+      'do not overlap with React methods.',
+      name
+    );
+  }
+
+  // Disallow defining methods more than once unless explicitly allowed.
+  if (proto.hasOwnProperty(name)) {
+    invariant(
+      specPolicy === SpecPolicy.DEFINE_MANY,
+      'ReactCompositeComponentInterface: You are attempting to define ' +
+      '`%s` on your component more than once. This conflict may be due ' +
+      'to a mixin.',
+      name
+    );
+  }
+}
+
+
+function validateLifeCycleOnReplaceState(instance) {
+  var compositeLifeCycleState = instance._compositeLifeCycleState;
+  invariant(
+    instance.isMounted() ||
+      compositeLifeCycleState === CompositeLifeCycle.MOUNTING,
+    'replaceState(...): Can only update a mounted or mounting component.'
+  );
+  invariant(
+    compositeLifeCycleState !== CompositeLifeCycle.RECEIVING_STATE &&
+    compositeLifeCycleState !== CompositeLifeCycle.UNMOUNTING,
+    'replaceState(...): Cannot update while unmounting component or during ' +
+    'an existing state transition (such as within `render`).'
+  );
+}
+
+/**
+ * Custom version of `mixInto` which handles policy validation and reserved
+ * specification keys when building `ReactCompositeComponent` classses.
+ */
+function mixSpecIntoComponent(Constructor, spec) {
+  var proto = Constructor.prototype;
+  for (var name in spec) {
+    var property = spec[name];
+    if (!spec.hasOwnProperty(name) || !property) {
+      continue;
+    }
+    validateMethodOverride(proto, name);
+
+    if (RESERVED_SPEC_KEYS.hasOwnProperty(name)) {
+      RESERVED_SPEC_KEYS[name](Constructor, property);
+    } else {
+      // Setup methods on prototype:
+      // The following member methods should not be automatically bound:
+      // 1. Expected ReactCompositeComponent methods (in the "interface").
+      // 2. Overridden methods (that were mixed in).
+      var isCompositeComponentMethod = name in ReactCompositeComponentInterface;
+      var isInherited = name in proto;
+      var markedDontBind = property.__reactDontBind;
+      var isFunction = typeof property === 'function';
+      var shouldAutoBind =
+        isFunction &&
+        !isCompositeComponentMethod &&
+        !isInherited &&
+        !markedDontBind;
+
+      if (shouldAutoBind) {
+        if (!proto.__reactAutoBindMap) {
+          proto.__reactAutoBindMap = {};
+        }
+        proto.__reactAutoBindMap[name] = property;
+        proto[name] = property;
+      } else {
+        if (isInherited) {
+          // For methods which are defined more than once, call the existing
+          // methods before calling the new property.
+          proto[name] = createChainedFunction(proto[name], property);
+        } else {
+          proto[name] = property;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Creates a function that invokes two functions and ignores their return vales.
+ *
+ * @param {function} one Function to invoke first.
+ * @param {function} two Function to invoke second.
+ * @return {function} Function that invokes the two argument functions.
+ * @private
+ */
+function createChainedFunction(one, two) {
+  return function chainedFunction() {
+    one.apply(this, arguments);
+    two.apply(this, arguments);
+  };
+}
+
+/**
+ * `ReactCompositeComponent` maintains an auxiliary life cycle state in
+ * `this._compositeLifeCycleState` (which can be null).
+ *
+ * This is different from the life cycle state maintained by `ReactComponent` in
+ * `this._lifeCycleState`. The following diagram shows how the states overlap in
+ * time. There are times when the CompositeLifeCycle is null - at those times it
+ * is only meaningful to look at ComponentLifeCycle alone.
+ *
+ * Top Row: ReactComponent.ComponentLifeCycle
+ * Low Row: ReactComponent.CompositeLifeCycle
+ *
+ * +-------+------------------------------------------------------+--------+
+ * |  UN   |                    MOUNTED                           |   UN   |
+ * |MOUNTED|                                                      | MOUNTED|
+ * +-------+------------------------------------------------------+--------+
+ * |       ^--------+   +------+   +------+   +------+   +--------^        |
+ * |       |        |   |      |   |      |   |      |   |        |        |
+ * |    0--|MOUNTING|-0-|RECEIV|-0-|RECEIV|-0-|RECEIV|-0-|   UN   |--->0   |
+ * |       |        |   |PROPS |   | PROPS|   | STATE|   |MOUNTING|        |
+ * |       |        |   |      |   |      |   |      |   |        |        |
+ * |       |        |   |      |   |      |   |      |   |        |        |
+ * |       +--------+   +------+   +------+   +------+   +--------+        |
+ * |       |                                                      |        |
+ * +-------+------------------------------------------------------+--------+
+ */
+var CompositeLifeCycle = keyMirror({
+  /**
+   * Components in the process of being mounted respond to state changes
+   * differently.
+   */
+  MOUNTING: null,
+  /**
+   * Components in the process of being unmounted are guarded against state
+   * changes.
+   */
+  UNMOUNTING: null,
+  /**
+   * Components that are mounted and receiving new props respond to state
+   * changes differently.
+   */
+  RECEIVING_PROPS: null,
+  /**
+   * Components that are mounted and receiving new state are guarded against
+   * additional state changes.
+   */
+  RECEIVING_STATE: null
+});
+
+/**
+ * @lends {ReactCompositeComponent.prototype}
+ */
+var ReactCompositeComponentMixin = {
+
+  /**
+   * Base constructor for all composite component.
+   *
+   * @param {?object} initialProps
+   * @param {*} children
+   * @final
+   * @internal
+   */
+  construct: function(initialProps, children) {
+    // Children can be either an array or more than one argument
+    ReactComponent.Mixin.construct.apply(this, arguments);
+    this.state = null;
+    this._pendingState = null;
+    this._compositeLifeCycleState = null;
+  },
+
+  /**
+   * Checks whether or not this composite component is mounted.
+   * @return {boolean} True if mounted, false otherwise.
+   * @protected
+   * @final
+   */
+  isMounted: function() {
+    return ReactComponent.Mixin.isMounted.call(this) &&
+      this._compositeLifeCycleState !== CompositeLifeCycle.MOUNTING;
+  },
+
+  /**
+   * Initializes the component, renders markup, and registers event listeners.
+   *
+   * @param {string} rootID DOM ID of the root node.
+   * @param {ReactReconcileTransaction} transaction
+   * @return {?string} Rendered markup to be inserted into the DOM.
+   * @final
+   * @internal
+   */
+  mountComponent: function(rootID, transaction) {
+    ReactComponent.Mixin.mountComponent.call(this, rootID, transaction);
+    this._compositeLifeCycleState = CompositeLifeCycle.MOUNTING;
+
+    this._defaultProps = this.getDefaultProps ? this.getDefaultProps() : null;
+    this._processProps(this.props);
+
+    if (this.__reactAutoBindMap) {
+      this._bindAutoBindMethods();
+    }
+
+    this.state = this.getInitialState ? this.getInitialState() : null;
+    this._pendingState = null;
+    this._pendingForceUpdate = false;
+
+    if (this.componentWillMount) {
+      this.componentWillMount();
+      // When mounting, calls to `setState` by `componentWillMount` will set
+      // `this._pendingState` without triggering a re-render.
+      if (this._pendingState) {
+        this.state = this._pendingState;
+        this._pendingState = null;
+      }
+    }
+
+    this._renderedComponent = this._renderValidatedComponent();
+
+    // Done with mounting, `setState` will now trigger UI changes.
+    this._compositeLifeCycleState = null;
+    var markup = this._renderedComponent.mountComponent(rootID, transaction);
+    if (this.componentDidMount) {
+      transaction.getReactOnDOMReady().enqueue(this, this.componentDidMount);
+    }
+    return markup;
+  },
+
+  /**
+   * Releases any resources allocated by `mountComponent`.
+   *
+   * @final
+   * @internal
+   */
+  unmountComponent: function() {
+    this._compositeLifeCycleState = CompositeLifeCycle.UNMOUNTING;
+    if (this.componentWillUnmount) {
+      this.componentWillUnmount(this.getDOMNode());
+    }
+    this._compositeLifeCycleState = null;
+
+    this._defaultProps = null;
+
+    ReactComponent.Mixin.unmountComponent.call(this);
+    this._renderedComponent.unmountComponent();
+    this._renderedComponent = null;
+
+    if (this.refs) {
+      this.refs = null;
+    }
+
+    // Some existing components rely on this.props even after they've been
+    // destroyed (in event handlers).
+    // TODO: this.props = null;
+    // TODO: this.state = null;
+  },
+
+  /**
+   * Sets a subset of the state. Always use this or `replaceState` to mutate
+   * state. You should treat `this.state` as immutable.
+   *
+   * There is no guarantee that `this.state` will be immediately updated, so
+   * accessing `this.state` after calling this method may return the old value.
+   *
+   * There is no guarantee that calls to `setState` will run synchronously,
+   * as they may eventually be batched together.  You can provide an optional
+   * callback that will be executed when the call to setState is actually
+   * completed.
+   *
+   * @param {object} partialState Next partial state to be merged with state.
+   * @param {?function} callback Called after state is updated.
+   * @final
+   * @protected
+   */
+  setState: function(partialState, callback) {
+    // Merge with `_pendingState` if it exists, otherwise with existing state.
+    this.replaceState(
+      merge(this._pendingState || this.state, partialState),
+      callback
+    );
+  },
+
+  /**
+   * Replaces all of the state. Always use this or `setState` to mutate state.
+   * You should treat `this.state` as immutable.
+   *
+   * There is no guarantee that `this.state` will be immediately updated, so
+   * accessing `this.state` after calling this method may return the old value.
+   *
+   * @param {object} completeState Next state.
+   * @param {?function} callback Called after state is updated.
+   * @final
+   * @protected
+   */
+  replaceState: function(completeState, callback) {
+    validateLifeCycleOnReplaceState.call(null, this);
+    this._pendingState = completeState;
+    ReactUpdates.enqueueUpdate(this, callback);
+  },
+
+  /**
+   * Processes props by setting default values for unspecified props and
+   * asserting that the props are valid.
+   *
+   * @param {object} props
+   * @private
+   */
+  _processProps: function(props) {
+    var propName;
+    var defaultProps = this._defaultProps;
+    for (propName in defaultProps) {
+      if (!(propName in props)) {
+        props[propName] = defaultProps[propName];
+      }
+    }
+    var propDeclarations = this.constructor.propDeclarations;
+    if (propDeclarations) {
+      var componentName = this.constructor.displayName;
+      for (propName in propDeclarations) {
+        var checkProp = propDeclarations[propName];
+        if (checkProp) {
+          checkProp(props, propName, componentName);
+        }
+      }
+    }
+  },
+
+  performUpdateIfNecessary: function() {
+    var compositeLifeCycleState = this._compositeLifeCycleState;
+    // Do not trigger a state transition if we are in the middle of mounting or
+    // receiving props because both of those will already be doing this.
+    if (compositeLifeCycleState === CompositeLifeCycle.MOUNTING ||
+        compositeLifeCycleState === CompositeLifeCycle.RECEIVING_PROPS) {
+      return;
+    }
+    ReactComponent.Mixin.performUpdateIfNecessary.call(this);
+  },
+
+  /**
+   * If any of `_pendingProps`, `_pendingState`, or `_pendingForceUpdate` is
+   * set, update the component.
+   *
+   * @param {ReactReconcileTransaction} transaction
+   * @internal
+   */
+  _performUpdateIfNecessary: function(transaction) {
+    if (this._pendingProps == null &&
+        this._pendingState == null &&
+        !this._pendingForceUpdate) {
+      return;
+    }
+
+    var nextProps = this.props;
+    if (this._pendingProps != null) {
+      nextProps = this._pendingProps;
+      this._processProps(nextProps);
+      this._pendingProps = null;
+
+      this._compositeLifeCycleState = CompositeLifeCycle.RECEIVING_PROPS;
+      if (this.componentWillReceiveProps) {
+        this.componentWillReceiveProps(nextProps, transaction);
+      }
+    }
+
+    this._compositeLifeCycleState = CompositeLifeCycle.RECEIVING_STATE;
+
+    var nextState = this._pendingState || this.state;
+    this._pendingState = null;
+
+    if (this._pendingForceUpdate ||
+        !this.shouldComponentUpdate ||
+        this.shouldComponentUpdate(nextProps, nextState)) {
+      this._pendingForceUpdate = false;
+      // Will set `this.props` and `this.state`.
+      this._performComponentUpdate(nextProps, nextState, transaction);
+    } else {
+      // If it's determined that a component should not update, we still want
+      // to set props and state.
+      this.props = nextProps;
+      this.state = nextState;
+    }
+
+    this._compositeLifeCycleState = null;
+  },
+
+  /**
+   * Merges new props and state, notifies delegate methods of update and
+   * performs update.
+   *
+   * @param {object} nextProps Next object to set as properties.
+   * @param {?object} nextState Next object to set as state.
+   * @param {ReactReconcileTransaction} transaction
+   * @private
+   */
+  _performComponentUpdate: function(nextProps, nextState, transaction) {
+    var prevProps = this.props;
+    var prevState = this.state;
+
+    if (this.componentWillUpdate) {
+      this.componentWillUpdate(nextProps, nextState, transaction);
+    }
+
+    this.props = nextProps;
+    this.state = nextState;
+
+    this.updateComponent(transaction, prevProps, prevState);
+
+    if (this.componentDidUpdate) {
+      transaction.getReactOnDOMReady().enqueue(
+        this,
+        this.componentDidUpdate.bind(this, prevProps, prevState)
+      );
+    }
+  },
+
+  /**
+   * Updates the component's currently mounted DOM representation.
+   *
+   * By default, this implements React's rendering and reconciliation algorithm.
+   * Sophisticated clients may wish to override this.
+   *
+   * @param {ReactReconcileTransaction} transaction
+   * @param {object} prevProps
+   * @param {?object} prevState
+   * @internal
+   * @overridable
+   */
+  updateComponent: function(transaction, prevProps, prevState) {
+    ReactComponent.Mixin.updateComponent.call(this, transaction, prevProps);
+    var currentComponent = this._renderedComponent;
+    var nextComponent = this._renderValidatedComponent();
+    if (currentComponent.constructor === nextComponent.constructor) {
+      currentComponent.receiveProps(nextComponent.props, transaction);
+    } else {
+      // These two IDs are actually the same! But nothing should rely on that.
+      var thisID = this._rootNodeID;
+      var currentComponentID = currentComponent._rootNodeID;
+      currentComponent.unmountComponent();
+      var nextMarkup = nextComponent.mountComponent(thisID, transaction);
+      ReactComponent.DOMIDOperations.dangerouslyReplaceNodeWithMarkupByID(
+        currentComponentID,
+        nextMarkup
+      );
+      this._renderedComponent = nextComponent;
+    }
+  },
+
+  /**
+   * Forces an update. This should only be invoked when it is known with
+   * certainty that we are **not** in a DOM transaction.
+   *
+   * You may want to call this when you know that some deeper aspect of the
+   * component's state has changed but `setState` was not called.
+   *
+   * This will not invoke `shouldUpdateComponent`, but it will invoke
+   * `componentWillUpdate` and `componentDidUpdate`.
+   *
+   * @param {?function} callback Called after update is complete.
+   * @final
+   * @protected
+   */
+  forceUpdate: function(callback) {
+    var compositeLifeCycleState = this._compositeLifeCycleState;
+    invariant(
+      this.isMounted() ||
+        compositeLifeCycleState === CompositeLifeCycle.MOUNTING,
+      'forceUpdate(...): Can only force an update on mounted or mounting ' +
+        'components.'
+    );
+    invariant(
+      compositeLifeCycleState !== CompositeLifeCycle.RECEIVING_STATE &&
+      compositeLifeCycleState !== CompositeLifeCycle.UNMOUNTING,
+      'forceUpdate(...): Cannot force an update while unmounting component ' +
+      'or during an existing state transition (such as within `render`).'
+    );
+    this._pendingForceUpdate = true;
+    ReactUpdates.enqueueUpdate(this, callback);
+  },
+
+  /**
+   * @private
+   */
+  _renderValidatedComponent: function() {
+    var renderedComponent;
+    ReactCurrentOwner.current = this;
+    try {
+      renderedComponent = this.render();
+    } catch (error) {
+      // IE8 requires `catch` in order to use `finally`.
+      throw error;
+    } finally {
+      ReactCurrentOwner.current = null;
+    }
+    invariant(
+      ReactComponent.isValidComponent(renderedComponent),
+      '%s.render(): A valid ReactComponent must be returned.',
+      this.constructor.displayName || 'ReactCompositeComponent'
+    );
+    return renderedComponent;
+  },
+
+  /**
+   * @private
+   */
+  _bindAutoBindMethods: function() {
+    for (var autoBindKey in this.__reactAutoBindMap) {
+      if (!this.__reactAutoBindMap.hasOwnProperty(autoBindKey)) {
+        continue;
+      }
+      var method = this.__reactAutoBindMap[autoBindKey];
+      this[autoBindKey] = this._bindAutoBindMethod(method);
+    }
+  },
+
+  /**
+   * Binds a method to the component.
+   *
+   * @param {function} method Method to be bound.
+   * @private
+   */
+  _bindAutoBindMethod: function(method) {
+    var component = this;
+    return function() {
+      return method.apply(component, arguments);
+    };
+  }
+
+};
+
+var ReactCompositeComponentBase = function() {};
+mixInto(ReactCompositeComponentBase, ReactComponent.Mixin);
+mixInto(ReactCompositeComponentBase, ReactOwner.Mixin);
+mixInto(ReactCompositeComponentBase, ReactPropTransferer.Mixin);
+mixInto(ReactCompositeComponentBase, ReactCompositeComponentMixin);
+
+/**
+ * Module for creating composite components.
+ *
+ * @class ReactCompositeComponent
+ * @extends ReactComponent
+ * @extends ReactOwner
+ * @extends ReactPropTransferer
+ */
+var ReactCompositeComponent = {
+
+  LifeCycle: CompositeLifeCycle,
+
+  Base: ReactCompositeComponentBase,
+
+  /**
+   * Creates a composite component class given a class specification.
+   *
+   * @param {object} spec Class specification (which must define `render`).
+   * @return {function} Component constructor function.
+   * @public
+   */
+  createClass: function(spec) {
+    var Constructor = function() {};
+    Constructor.prototype = new ReactCompositeComponentBase();
+    Constructor.prototype.constructor = Constructor;
+    mixSpecIntoComponent(Constructor, spec);
+    invariant(
+      Constructor.prototype.render,
+      'createClass(...): Class specification must implement a `render` method.'
+    );
+
+    var ConvenienceConstructor = function(props, children) {
+      var instance = new Constructor();
+      instance.construct.apply(instance, arguments);
+      return instance;
+    };
+    ConvenienceConstructor.componentConstructor = Constructor;
+    ConvenienceConstructor.originalSpec = spec;
+    return ConvenienceConstructor;
+  },
+
+  /**
+   * TODO: Delete this when all callers have been updated to rely on this
+   * behavior being the default.
+   *
+   * Backwards compatible stub for what is now the default behavior.
+   * @param {function} method Method to be bound.
+   * @public
+   */
+  autoBind: function(method) {
+    return method;
+  }
+};
+
+module.exports = ReactCompositeComponent;
+
+})()
+},{"./ReactComponent":3,"./ReactCurrentOwner":9,"./ReactOwner":10,"./ReactPropTransferer":11,"./ReactUpdates":12,"./invariant":13,"./keyMirror":14,"./merge":15,"./mixInto":16}],3:[function(require,module,exports){
 (function(global){/**
  * Copyright 2013 Facebook, Inc.
  *
@@ -631,889 +1514,7 @@ var ReactComponent = {
 module.exports = ReactComponent;
 
 })(window)
-},{"./ReactCurrentOwner":9,"./ReactDOMIDOperations":10,"./ReactID":11,"./ReactMount":5,"./ReactOwner":12,"./ReactReconcileTransaction":13,"./ReactUpdates":14,"./invariant":15,"./keyMirror":16,"./merge":17}],2:[function(require,module,exports){
-(function(){/**
- * Copyright 2013 Facebook, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * @providesModule ReactCompositeComponent
- */
-
-"use strict";
-
-var ReactComponent = require("./ReactComponent");
-var ReactCurrentOwner = require("./ReactCurrentOwner");
-var ReactOwner = require("./ReactOwner");
-var ReactPropTransferer = require("./ReactPropTransferer");
-var ReactUpdates = require("./ReactUpdates");
-
-var invariant = require("./invariant");
-var keyMirror = require("./keyMirror");
-var merge = require("./merge");
-var mixInto = require("./mixInto");
-
-/**
- * Policies that describe methods in `ReactCompositeComponentInterface`.
- */
-var SpecPolicy = keyMirror({
-  /**
-   * These methods may be defined only once by the class specification or mixin.
-   */
-  DEFINE_ONCE: null,
-  /**
-   * These methods may be defined by both the class specification and mixins.
-   * Subsequent definitions will be chained. These methods must return void.
-   */
-  DEFINE_MANY: null,
-  /**
-   * These methods are overriding the base ReactCompositeComponent class.
-   */
-  OVERRIDE_BASE: null
-});
-
-/**
- * Composite components are higher-level components that compose other composite
- * or native components.
- *
- * To create a new type of `ReactCompositeComponent`, pass a specification of
- * your new class to `React.createClass`. The only requirement of your class
- * specification is that you implement a `render` method.
- *
- *   var MyComponent = React.createClass({
- *     render: function() {
- *       return <div>Hello World</div>;
- *     }
- *   });
- *
- * The class specification supports a specific protocol of methods that have
- * special meaning (e.g. `render`). See `ReactCompositeComponentInterface` for
- * more the comprehensive protocol. Any other properties and methods in the
- * class specification will available on the prototype.
- *
- * @interface ReactCompositeComponentInterface
- * @internal
- */
-var ReactCompositeComponentInterface = {
-
-  /**
-   * An array of Mixin objects to include when defining your component.
-   *
-   * @type {array}
-   * @optional
-   */
-  mixins: SpecPolicy.DEFINE_MANY,
-
-  /**
-   * Definition of props for this component.
-   *
-   * @type {array}
-   * @optional
-   */
-  props: SpecPolicy.DEFINE_ONCE,
-
-
-
-  // ==== Definition methods ====
-
-  /**
-   * Invoked when the component is mounted. Values in the mapping will be set on
-   * `this.props` if that prop is not specified (i.e. using an `in` check).
-   *
-   * This method is invoked before `getInitialState` and therefore cannot rely
-   * on `this.state` or use `this.setState`.
-   *
-   * @return {object}
-   * @optional
-   */
-  getDefaultProps: SpecPolicy.DEFINE_ONCE,
-
-  /**
-   * Invoked once before the component is mounted. The return value will be used
-   * as the initial value of `this.state`.
-   *
-   *   getInitialState: function() {
-   *     return {
-   *       isOn: false,
-   *       fooBaz: new BazFoo()
-   *     }
-   *   }
-   *
-   * @return {object}
-   * @optional
-   */
-  getInitialState: SpecPolicy.DEFINE_ONCE,
-
-  /**
-   * Uses props from `this.props` and state from `this.state` to render the
-   * structure of the component.
-   *
-   * No guarantees are made about when or how often this method is invoked, so
-   * it must not have side effects.
-   *
-   *   render: function() {
-   *     var name = this.props.name;
-   *     return <div>Hello, {name}!</div>;
-   *   }
-   *
-   * @return {ReactComponent}
-   * @nosideeffects
-   * @required
-   */
-  render: SpecPolicy.DEFINE_ONCE,
-
-
-
-  // ==== Delegate methods ====
-
-  /**
-   * Invoked when the component is initially created and about to be mounted.
-   * This may have side effects, but any external subscriptions or data created
-   * by this method must be cleaned up in `componentWillUnmount`.
-   *
-   * @optional
-   */
-  componentWillMount: SpecPolicy.DEFINE_MANY,
-
-  /**
-   * Invoked when the component has been mounted and has a DOM representation.
-   * However, there is no guarantee that the DOM node is in the document.
-   *
-   * Use this as an opportunity to operate on the DOM when the component has
-   * been mounted (initialized and rendered) for the first time.
-   *
-   * @param {DOMElement} rootNode DOM element representing the component.
-   * @optional
-   */
-  componentDidMount: SpecPolicy.DEFINE_MANY,
-
-  /**
-   * Invoked before the component receives new props.
-   *
-   * Use this as an opportunity to react to a prop transition by updating the
-   * state using `this.setState`. Current props are accessed via `this.props`.
-   *
-   *   componentWillReceiveProps: function(nextProps) {
-   *     this.setState({
-   *       likesIncreasing: nextProps.likeCount > this.props.likeCount
-   *     });
-   *   }
-   *
-   * NOTE: There is no equivalent `componentWillReceiveState`. An incoming prop
-   * transition may cause a state change, but the opposite is not true. If you
-   * need it, you are probably looking for `componentWillUpdate`.
-   *
-   * @param {object} nextProps
-   * @optional
-   */
-  componentWillReceiveProps: SpecPolicy.DEFINE_MANY,
-
-  /**
-   * Invoked while deciding if the component should be updated as a result of
-   * receiving new props and state.
-   *
-   * Use this as an opportunity to `return false` when you're certain that the
-   * transition to the new props and state will not require a component update.
-   *
-   *   shouldComponentUpdate: function(nextProps, nextState) {
-   *     return !equal(nextProps, this.props) || !equal(nextState, this.state);
-   *   }
-   *
-   * @param {object} nextProps
-   * @param {?object} nextState
-   * @return {boolean} True if the component should update.
-   * @optional
-   */
-  shouldComponentUpdate: SpecPolicy.DEFINE_ONCE,
-
-  /**
-   * Invoked when the component is about to update due to a transition from
-   * `this.props` and `this.state` to `nextProps` and `nextState`.
-   *
-   * Use this as an opportunity to perform preparation before an update occurs.
-   *
-   * NOTE: You **cannot** use `this.setState()` in this method.
-   *
-   * @param {object} nextProps
-   * @param {?object} nextState
-   * @param {ReactReconcileTransaction} transaction
-   * @optional
-   */
-  componentWillUpdate: SpecPolicy.DEFINE_MANY,
-
-  /**
-   * Invoked when the component's DOM representation has been updated.
-   *
-   * Use this as an opportunity to operate on the DOM when the component has
-   * been updated.
-   *
-   * @param {object} prevProps
-   * @param {?object} prevState
-   * @param {DOMElement} rootNode DOM element representing the component.
-   * @optional
-   */
-  componentDidUpdate: SpecPolicy.DEFINE_MANY,
-
-  /**
-   * Invoked when the component is about to be removed from its parent and have
-   * its DOM representation destroyed.
-   *
-   * Use this as an opportunity to deallocate any external resources.
-   *
-   * NOTE: There is no `componentDidUnmount` since your component will have been
-   * destroyed by that point.
-   *
-   * @optional
-   */
-  componentWillUnmount: SpecPolicy.DEFINE_MANY,
-
-
-
-  // ==== Advanced methods ====
-
-  /**
-   * Updates the component's currently mounted DOM representation.
-   *
-   * By default, this implements React's rendering and reconciliation algorithm.
-   * Sophisticated clients may wish to override this.
-   *
-   * @param {ReactReconcileTransaction} transaction
-   * @internal
-   * @overridable
-   */
-  updateComponent: SpecPolicy.OVERRIDE_BASE
-
-};
-
-/**
- * Mapping from class specification keys to special processing functions.
- *
- * Although these are declared in the specification when defining classes
- * using `React.createClass`, they will not be on the component's prototype.
- */
-var RESERVED_SPEC_KEYS = {
-  displayName: function(Constructor, displayName) {
-    Constructor.displayName = displayName;
-  },
-  mixins: function(Constructor, mixins) {
-    if (mixins) {
-      for (var i = 0; i < mixins.length; i++) {
-        mixSpecIntoComponent(Constructor, mixins[i]);
-      }
-    }
-  },
-  props: function(Constructor, props) {
-    Constructor.propDeclarations = props;
-  }
-};
-
-function validateMethodOverride(proto, name) {
-  var specPolicy = ReactCompositeComponentInterface[name];
-
-  // Disallow overriding of base class methods unless explicitly allowed.
-  if (ReactCompositeComponentMixin.hasOwnProperty(name)) {
-    invariant(
-      specPolicy === SpecPolicy.OVERRIDE_BASE,
-      'ReactCompositeComponentInterface: You are attempting to override ' +
-      '`%s` from your class specification. Ensure that your method names ' +
-      'do not overlap with React methods.',
-      name
-    );
-  }
-
-  // Disallow defining methods more than once unless explicitly allowed.
-  if (proto.hasOwnProperty(name)) {
-    invariant(
-      specPolicy === SpecPolicy.DEFINE_MANY,
-      'ReactCompositeComponentInterface: You are attempting to define ' +
-      '`%s` on your component more than once. This conflict may be due ' +
-      'to a mixin.',
-      name
-    );
-  }
-}
-
-
-function validateLifeCycleOnReplaceState(instance) {
-  var compositeLifeCycleState = instance._compositeLifeCycleState;
-  invariant(
-    instance.isMounted() ||
-      compositeLifeCycleState === CompositeLifeCycle.MOUNTING,
-    'replaceState(...): Can only update a mounted or mounting component.'
-  );
-  invariant(
-    compositeLifeCycleState !== CompositeLifeCycle.RECEIVING_STATE &&
-    compositeLifeCycleState !== CompositeLifeCycle.UNMOUNTING,
-    'replaceState(...): Cannot update while unmounting component or during ' +
-    'an existing state transition (such as within `render`).'
-  );
-}
-
-/**
- * Custom version of `mixInto` which handles policy validation and reserved
- * specification keys when building `ReactCompositeComponent` classses.
- */
-function mixSpecIntoComponent(Constructor, spec) {
-  var proto = Constructor.prototype;
-  for (var name in spec) {
-    var property = spec[name];
-    if (!spec.hasOwnProperty(name) || !property) {
-      continue;
-    }
-    validateMethodOverride(proto, name);
-
-    if (RESERVED_SPEC_KEYS.hasOwnProperty(name)) {
-      RESERVED_SPEC_KEYS[name](Constructor, property);
-    } else {
-      // Setup methods on prototype:
-      // The following member methods should not be automatically bound:
-      // 1. Expected ReactCompositeComponent methods (in the "interface").
-      // 2. Overridden methods (that were mixed in).
-      var isCompositeComponentMethod = name in ReactCompositeComponentInterface;
-      var isInherited = name in proto;
-      var markedDontBind = property.__reactDontBind;
-      var isFunction = typeof property === 'function';
-      var shouldAutoBind =
-        isFunction &&
-        !isCompositeComponentMethod &&
-        !isInherited &&
-        !markedDontBind;
-
-      if (shouldAutoBind) {
-        if (!proto.__reactAutoBindMap) {
-          proto.__reactAutoBindMap = {};
-        }
-        proto.__reactAutoBindMap[name] = property;
-        proto[name] = property;
-      } else {
-        if (isInherited) {
-          // For methods which are defined more than once, call the existing
-          // methods before calling the new property.
-          proto[name] = createChainedFunction(proto[name], property);
-        } else {
-          proto[name] = property;
-        }
-      }
-    }
-  }
-}
-
-/**
- * Creates a function that invokes two functions and ignores their return vales.
- *
- * @param {function} one Function to invoke first.
- * @param {function} two Function to invoke second.
- * @return {function} Function that invokes the two argument functions.
- * @private
- */
-function createChainedFunction(one, two) {
-  return function chainedFunction() {
-    one.apply(this, arguments);
-    two.apply(this, arguments);
-  };
-}
-
-/**
- * `ReactCompositeComponent` maintains an auxiliary life cycle state in
- * `this._compositeLifeCycleState` (which can be null).
- *
- * This is different from the life cycle state maintained by `ReactComponent` in
- * `this._lifeCycleState`. The following diagram shows how the states overlap in
- * time. There are times when the CompositeLifeCycle is null - at those times it
- * is only meaningful to look at ComponentLifeCycle alone.
- *
- * Top Row: ReactComponent.ComponentLifeCycle
- * Low Row: ReactComponent.CompositeLifeCycle
- *
- * +-------+------------------------------------------------------+--------+
- * |  UN   |                    MOUNTED                           |   UN   |
- * |MOUNTED|                                                      | MOUNTED|
- * +-------+------------------------------------------------------+--------+
- * |       ^--------+   +------+   +------+   +------+   +--------^        |
- * |       |        |   |      |   |      |   |      |   |        |        |
- * |    0--|MOUNTING|-0-|RECEIV|-0-|RECEIV|-0-|RECEIV|-0-|   UN   |--->0   |
- * |       |        |   |PROPS |   | PROPS|   | STATE|   |MOUNTING|        |
- * |       |        |   |      |   |      |   |      |   |        |        |
- * |       |        |   |      |   |      |   |      |   |        |        |
- * |       +--------+   +------+   +------+   +------+   +--------+        |
- * |       |                                                      |        |
- * +-------+------------------------------------------------------+--------+
- */
-var CompositeLifeCycle = keyMirror({
-  /**
-   * Components in the process of being mounted respond to state changes
-   * differently.
-   */
-  MOUNTING: null,
-  /**
-   * Components in the process of being unmounted are guarded against state
-   * changes.
-   */
-  UNMOUNTING: null,
-  /**
-   * Components that are mounted and receiving new props respond to state
-   * changes differently.
-   */
-  RECEIVING_PROPS: null,
-  /**
-   * Components that are mounted and receiving new state are guarded against
-   * additional state changes.
-   */
-  RECEIVING_STATE: null
-});
-
-/**
- * @lends {ReactCompositeComponent.prototype}
- */
-var ReactCompositeComponentMixin = {
-
-  /**
-   * Base constructor for all composite component.
-   *
-   * @param {?object} initialProps
-   * @param {*} children
-   * @final
-   * @internal
-   */
-  construct: function(initialProps, children) {
-    // Children can be either an array or more than one argument
-    ReactComponent.Mixin.construct.apply(this, arguments);
-    this.state = null;
-    this._pendingState = null;
-    this._compositeLifeCycleState = null;
-  },
-
-  /**
-   * Checks whether or not this composite component is mounted.
-   * @return {boolean} True if mounted, false otherwise.
-   * @protected
-   * @final
-   */
-  isMounted: function() {
-    return ReactComponent.Mixin.isMounted.call(this) &&
-      this._compositeLifeCycleState !== CompositeLifeCycle.MOUNTING;
-  },
-
-  /**
-   * Initializes the component, renders markup, and registers event listeners.
-   *
-   * @param {string} rootID DOM ID of the root node.
-   * @param {ReactReconcileTransaction} transaction
-   * @return {?string} Rendered markup to be inserted into the DOM.
-   * @final
-   * @internal
-   */
-  mountComponent: function(rootID, transaction) {
-    ReactComponent.Mixin.mountComponent.call(this, rootID, transaction);
-    this._compositeLifeCycleState = CompositeLifeCycle.MOUNTING;
-
-    this._defaultProps = this.getDefaultProps ? this.getDefaultProps() : null;
-    this._processProps(this.props);
-
-    if (this.__reactAutoBindMap) {
-      this._bindAutoBindMethods();
-    }
-
-    this.state = this.getInitialState ? this.getInitialState() : null;
-    this._pendingState = null;
-    this._pendingForceUpdate = false;
-
-    if (this.componentWillMount) {
-      this.componentWillMount();
-      // When mounting, calls to `setState` by `componentWillMount` will set
-      // `this._pendingState` without triggering a re-render.
-      if (this._pendingState) {
-        this.state = this._pendingState;
-        this._pendingState = null;
-      }
-    }
-
-    this._renderedComponent = this._renderValidatedComponent();
-
-    // Done with mounting, `setState` will now trigger UI changes.
-    this._compositeLifeCycleState = null;
-    var markup = this._renderedComponent.mountComponent(rootID, transaction);
-    if (this.componentDidMount) {
-      transaction.getReactOnDOMReady().enqueue(this, this.componentDidMount);
-    }
-    return markup;
-  },
-
-  /**
-   * Releases any resources allocated by `mountComponent`.
-   *
-   * @final
-   * @internal
-   */
-  unmountComponent: function() {
-    this._compositeLifeCycleState = CompositeLifeCycle.UNMOUNTING;
-    if (this.componentWillUnmount) {
-      this.componentWillUnmount();
-    }
-    this._compositeLifeCycleState = null;
-
-    this._defaultProps = null;
-
-    ReactComponent.Mixin.unmountComponent.call(this);
-    this._renderedComponent.unmountComponent();
-    this._renderedComponent = null;
-
-    if (this.refs) {
-      this.refs = null;
-    }
-
-    // Some existing components rely on this.props even after they've been
-    // destroyed (in event handlers).
-    // TODO: this.props = null;
-    // TODO: this.state = null;
-  },
-
-  /**
-   * Sets a subset of the state. Always use this or `replaceState` to mutate
-   * state. You should treat `this.state` as immutable.
-   *
-   * There is no guarantee that `this.state` will be immediately updated, so
-   * accessing `this.state` after calling this method may return the old value.
-   *
-   * There is no guarantee that calls to `setState` will run synchronously,
-   * as they may eventually be batched together.  You can provide an optional
-   * callback that will be executed when the call to setState is actually
-   * completed.
-   *
-   * @param {object} partialState Next partial state to be merged with state.
-   * @param {?function} callback Called after state is updated.
-   * @final
-   * @protected
-   */
-  setState: function(partialState, callback) {
-    // Merge with `_pendingState` if it exists, otherwise with existing state.
-    this.replaceState(
-      merge(this._pendingState || this.state, partialState),
-      callback
-    );
-  },
-
-  /**
-   * Replaces all of the state. Always use this or `setState` to mutate state.
-   * You should treat `this.state` as immutable.
-   *
-   * There is no guarantee that `this.state` will be immediately updated, so
-   * accessing `this.state` after calling this method may return the old value.
-   *
-   * @param {object} completeState Next state.
-   * @param {?function} callback Called after state is updated.
-   * @final
-   * @protected
-   */
-  replaceState: function(completeState, callback) {
-    validateLifeCycleOnReplaceState.call(null, this);
-    this._pendingState = completeState;
-    ReactUpdates.enqueueUpdate(this, callback);
-  },
-
-  /**
-   * Processes props by setting default values for unspecified props and
-   * asserting that the props are valid.
-   *
-   * @param {object} props
-   * @private
-   */
-  _processProps: function(props) {
-    var propName;
-    var defaultProps = this._defaultProps;
-    for (propName in defaultProps) {
-      if (!(propName in props)) {
-        props[propName] = defaultProps[propName];
-      }
-    }
-    var propDeclarations = this.constructor.propDeclarations;
-    if (propDeclarations) {
-      var componentName = this.constructor.displayName;
-      for (propName in propDeclarations) {
-        var checkProp = propDeclarations[propName];
-        if (checkProp) {
-          checkProp(props, propName, componentName);
-        }
-      }
-    }
-  },
-
-  performUpdateIfNecessary: function() {
-    var compositeLifeCycleState = this._compositeLifeCycleState;
-    // Do not trigger a state transition if we are in the middle of mounting or
-    // receiving props because both of those will already be doing this.
-    if (compositeLifeCycleState === CompositeLifeCycle.MOUNTING ||
-        compositeLifeCycleState === CompositeLifeCycle.RECEIVING_PROPS) {
-      return;
-    }
-    ReactComponent.Mixin.performUpdateIfNecessary.call(this);
-  },
-
-  /**
-   * If any of `_pendingProps`, `_pendingState`, or `_pendingForceUpdate` is
-   * set, update the component.
-   *
-   * @param {ReactReconcileTransaction} transaction
-   * @internal
-   */
-  _performUpdateIfNecessary: function(transaction) {
-    if (this._pendingProps == null &&
-        this._pendingState == null &&
-        !this._pendingForceUpdate) {
-      return;
-    }
-
-    var nextProps = this.props;
-    if (this._pendingProps != null) {
-      nextProps = this._pendingProps;
-      this._processProps(nextProps);
-      this._pendingProps = null;
-
-      this._compositeLifeCycleState = CompositeLifeCycle.RECEIVING_PROPS;
-      if (this.componentWillReceiveProps) {
-        this.componentWillReceiveProps(nextProps, transaction);
-      }
-    }
-
-    this._compositeLifeCycleState = CompositeLifeCycle.RECEIVING_STATE;
-
-    var nextState = this._pendingState || this.state;
-    this._pendingState = null;
-
-    if (this._pendingForceUpdate ||
-        !this.shouldComponentUpdate ||
-        this.shouldComponentUpdate(nextProps, nextState)) {
-      this._pendingForceUpdate = false;
-      // Will set `this.props` and `this.state`.
-      this._performComponentUpdate(nextProps, nextState, transaction);
-    } else {
-      // If it's determined that a component should not update, we still want
-      // to set props and state.
-      this.props = nextProps;
-      this.state = nextState;
-    }
-
-    this._compositeLifeCycleState = null;
-  },
-
-  /**
-   * Merges new props and state, notifies delegate methods of update and
-   * performs update.
-   *
-   * @param {object} nextProps Next object to set as properties.
-   * @param {?object} nextState Next object to set as state.
-   * @param {ReactReconcileTransaction} transaction
-   * @private
-   */
-  _performComponentUpdate: function(nextProps, nextState, transaction) {
-    var prevProps = this.props;
-    var prevState = this.state;
-
-    if (this.componentWillUpdate) {
-      this.componentWillUpdate(nextProps, nextState, transaction);
-    }
-
-    this.props = nextProps;
-    this.state = nextState;
-
-    this.updateComponent(transaction, prevProps, prevState);
-
-    if (this.componentDidUpdate) {
-      transaction.getReactOnDOMReady().enqueue(
-        this,
-        this.componentDidUpdate.bind(this, prevProps, prevState)
-      );
-    }
-  },
-
-  /**
-   * Updates the component's currently mounted DOM representation.
-   *
-   * By default, this implements React's rendering and reconciliation algorithm.
-   * Sophisticated clients may wish to override this.
-   *
-   * @param {ReactReconcileTransaction} transaction
-   * @param {object} prevProps
-   * @param {?object} prevState
-   * @internal
-   * @overridable
-   */
-  updateComponent: function(transaction, prevProps, prevState) {
-    ReactComponent.Mixin.updateComponent.call(this, transaction, prevProps);
-    var currentComponent = this._renderedComponent;
-    var nextComponent = this._renderValidatedComponent();
-    if (currentComponent.constructor === nextComponent.constructor) {
-      currentComponent.receiveProps(nextComponent.props, transaction);
-    } else {
-      // These two IDs are actually the same! But nothing should rely on that.
-      var thisID = this._rootNodeID;
-      var currentComponentID = currentComponent._rootNodeID;
-      currentComponent.unmountComponent();
-      var nextMarkup = nextComponent.mountComponent(thisID, transaction);
-      ReactComponent.DOMIDOperations.dangerouslyReplaceNodeWithMarkupByID(
-        currentComponentID,
-        nextMarkup
-      );
-      this._renderedComponent = nextComponent;
-    }
-  },
-
-  /**
-   * Forces an update. This should only be invoked when it is known with
-   * certainty that we are **not** in a DOM transaction.
-   *
-   * You may want to call this when you know that some deeper aspect of the
-   * component's state has changed but `setState` was not called.
-   *
-   * This will not invoke `shouldUpdateComponent`, but it will invoke
-   * `componentWillUpdate` and `componentDidUpdate`.
-   *
-   * @param {?function} callback Called after update is complete.
-   * @final
-   * @protected
-   */
-  forceUpdate: function(callback) {
-    var compositeLifeCycleState = this._compositeLifeCycleState;
-    invariant(
-      this.isMounted() ||
-        compositeLifeCycleState === CompositeLifeCycle.MOUNTING,
-      'forceUpdate(...): Can only force an update on mounted or mounting ' +
-        'components.'
-    );
-    invariant(
-      compositeLifeCycleState !== CompositeLifeCycle.RECEIVING_STATE &&
-      compositeLifeCycleState !== CompositeLifeCycle.UNMOUNTING,
-      'forceUpdate(...): Cannot force an update while unmounting component ' +
-      'or during an existing state transition (such as within `render`).'
-    );
-    this._pendingForceUpdate = true;
-    ReactUpdates.enqueueUpdate(this, callback);
-  },
-
-  /**
-   * @private
-   */
-  _renderValidatedComponent: function() {
-    var renderedComponent;
-    ReactCurrentOwner.current = this;
-    try {
-      renderedComponent = this.render();
-    } catch (error) {
-      // IE8 requires `catch` in order to use `finally`.
-      throw error;
-    } finally {
-      ReactCurrentOwner.current = null;
-    }
-    invariant(
-      ReactComponent.isValidComponent(renderedComponent),
-      '%s.render(): A valid ReactComponent must be returned.',
-      this.constructor.displayName || 'ReactCompositeComponent'
-    );
-    return renderedComponent;
-  },
-
-  /**
-   * @private
-   */
-  _bindAutoBindMethods: function() {
-    for (var autoBindKey in this.__reactAutoBindMap) {
-      if (!this.__reactAutoBindMap.hasOwnProperty(autoBindKey)) {
-        continue;
-      }
-      var method = this.__reactAutoBindMap[autoBindKey];
-      this[autoBindKey] = this._bindAutoBindMethod(method);
-    }
-  },
-
-  /**
-   * Binds a method to the component.
-   *
-   * @param {function} method Method to be bound.
-   * @private
-   */
-  _bindAutoBindMethod: function(method) {
-    var component = this;
-    return function() {
-      return method.apply(component, arguments);
-    };
-  }
-
-};
-
-var ReactCompositeComponentBase = function() {};
-mixInto(ReactCompositeComponentBase, ReactComponent.Mixin);
-mixInto(ReactCompositeComponentBase, ReactOwner.Mixin);
-mixInto(ReactCompositeComponentBase, ReactPropTransferer.Mixin);
-mixInto(ReactCompositeComponentBase, ReactCompositeComponentMixin);
-
-/**
- * Module for creating composite components.
- *
- * @class ReactCompositeComponent
- * @extends ReactComponent
- * @extends ReactOwner
- * @extends ReactPropTransferer
- */
-var ReactCompositeComponent = {
-
-  LifeCycle: CompositeLifeCycle,
-
-  Base: ReactCompositeComponentBase,
-
-  /**
-   * Creates a composite component class given a class specification.
-   *
-   * @param {object} spec Class specification (which must define `render`).
-   * @return {function} Component constructor function.
-   * @public
-   */
-  createClass: function(spec) {
-    var Constructor = function() {};
-    Constructor.prototype = new ReactCompositeComponentBase();
-    Constructor.prototype.constructor = Constructor;
-    mixSpecIntoComponent(Constructor, spec);
-    invariant(
-      Constructor.prototype.render,
-      'createClass(...): Class specification must implement a `render` method.'
-    );
-
-    var ConvenienceConstructor = function(props, children) {
-      var instance = new Constructor();
-      instance.construct.apply(instance, arguments);
-      return instance;
-    };
-    ConvenienceConstructor.componentConstructor = Constructor;
-    ConvenienceConstructor.originalSpec = spec;
-    return ConvenienceConstructor;
-  },
-
-  /**
-   * TODO: Delete this when all callers have been updated to rely on this
-   * behavior being the default.
-   *
-   * Backwards compatible stub for what is now the default behavior.
-   * @param {function} method Method to be bound.
-   * @public
-   */
-  autoBind: function(method) {
-    return method;
-  }
-};
-
-module.exports = ReactCompositeComponent;
-
-})()
-},{"./ReactComponent":3,"./ReactCurrentOwner":9,"./ReactOwner":12,"./ReactPropTransferer":18,"./ReactUpdates":14,"./invariant":15,"./keyMirror":16,"./merge":17,"./mixInto":19}],4:[function(require,module,exports){
+},{"./ReactCurrentOwner":9,"./ReactDOMIDOperations":17,"./ReactID":18,"./ReactMount":5,"./ReactOwner":10,"./ReactReconcileTransaction":19,"./ReactUpdates":12,"./invariant":13,"./keyMirror":14,"./merge":15}],4:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -1962,7 +1963,7 @@ var ReactMount = {
 module.exports = ReactMount;
 
 })()
-},{"./ReactEventEmitter":23,"./ReactInstanceHandles":24,"./ReactEventTopLevelCallback":25,"./ReactID":11,"./$":26}],6:[function(require,module,exports){
+},{"./ReactEventEmitter":23,"./ReactInstanceHandles":24,"./ReactEventTopLevelCallback":25,"./ReactID":18,"./$":26}],6:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -2122,7 +2123,7 @@ function createChainableTypeChecker(validate) {
 
 module.exports = Props;
 
-},{"./createObjectFrom":27,"./invariant":15}],7:[function(require,module,exports){
+},{"./createObjectFrom":27,"./invariant":13}],7:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -2169,7 +2170,7 @@ module.exports = {
   renderComponentToString: renderComponentToString
 };
 
-},{"./ReactReconcileTransaction":13,"./ReactInstanceHandles":24}],8:[function(require,module,exports){
+},{"./ReactReconcileTransaction":19,"./ReactInstanceHandles":24}],8:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -2204,6 +2205,7 @@ var ChangeEventPlugin = require("./ChangeEventPlugin");
 var EventPluginHub = require("./EventPluginHub");
 var ReactInstanceHandles = require("./ReactInstanceHandles");
 var SimpleEventPlugin = require("./SimpleEventPlugin");
+var TapEventPlugin = require("./TapEventPlugin");
 
 function inject() {
   /**
@@ -2231,11 +2233,18 @@ function inject() {
   DOMProperty.injection.injectDOMPropertyConfig(DefaultDOMPropertyConfig);
 }
 
+function injectTouch() {
+  EventPluginHub.injection.injectEventPluginsByName({
+    'TapEventPlugin': TapEventPlugin
+  });
+}
+
 module.exports = {
-  inject: inject
+  inject: inject,
+  injectTouch: injectTouch
 };
 
-},{"./ReactDOM":4,"./ReactDOMForm":28,"./ReactDOMInput":29,"./ReactDOMTextarea":30,"./DefaultDOMPropertyConfig":31,"./DOMProperty":32,"./DefaultEventPluginOrder":33,"./EnterLeaveEventPlugin":34,"./ChangeEventPlugin":35,"./EventPluginHub":36,"./ReactInstanceHandles":24,"./SimpleEventPlugin":37}],9:[function(require,module,exports){
+},{"./ReactDOM":4,"./ReactDOMForm":28,"./ReactDOMInput":29,"./ReactDOMTextarea":30,"./DOMProperty":31,"./DefaultDOMPropertyConfig":32,"./DefaultEventPluginOrder":33,"./EnterLeaveEventPlugin":34,"./ChangeEventPlugin":35,"./ReactInstanceHandles":24,"./EventPluginHub":36,"./SimpleEventPlugin":37,"./TapEventPlugin":38}],9:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -2276,7 +2285,7 @@ var ReactCurrentOwner = {
 
 module.exports = ReactCurrentOwner;
 
-},{}],15:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -2332,7 +2341,7 @@ if (true) {
   module.exports = invariantDev;
 }
 
-},{}],19:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -2418,6 +2427,476 @@ function objMapKeyVal(obj, func, context) {
 module.exports = objMapKeyVal;
 
 },{}],10:[function(require,module,exports){
+/**
+ * Copyright 2013 Facebook, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @providesModule ReactOwner
+ */
+
+"use strict";
+
+var invariant = require("./invariant");
+
+/**
+ * ReactOwners are capable of storing references to owned components.
+ *
+ * All components are capable of //being// referenced by owner components, but
+ * only ReactOwner components are capable of //referencing// owned components.
+ * The named reference is known as a "ref".
+ *
+ * Refs are available when mounted and updated during reconciliation.
+ *
+ *   var MyComponent = React.createClass({
+ *     render: function() {
+ *       return (
+ *         <div onClick={this.handleClick}>
+ *           <CustomComponent ref="custom" />
+ *         </div>
+ *       );
+ *     },
+ *     handleClick: React.autoBind(function() {
+ *       this.refs.custom.handleClick();
+ *     }),
+ *     componentDidMount: function() {
+ *       this.refs.custom.initialize();
+ *     }
+ *   });
+ *
+ * Refs should rarely be used. When refs are used, they should only be done to
+ * control data that is not handled by React's data flow.
+ *
+ * @class ReactOwner
+ */
+var ReactOwner = {
+
+  /**
+   * @param {?object} object
+   * @return {boolean} True if `object` is a valid owner.
+   * @final
+   */
+  isValidOwner: function(object) {
+    return !!(
+      object &&
+      typeof object.attachRef === 'function' &&
+      typeof object.detachRef === 'function'
+    );
+  },
+
+  /**
+   * Adds a component by ref to an owner component.
+   *
+   * @param {ReactComponent} component Component to reference.
+   * @param {string} ref Name by which to refer to the component.
+   * @param {ReactOwner} owner Component on which to record the ref.
+   * @final
+   * @internal
+   */
+  addComponentAsRefTo: function(component, ref, owner) {
+    invariant(
+      ReactOwner.isValidOwner(owner),
+      'addComponentAsRefTo(...): Only a ReactOwner can have refs.'
+    );
+    owner.attachRef(ref, component);
+  },
+
+  /**
+   * Removes a component by ref from an owner component.
+   *
+   * @param {ReactComponent} component Component to dereference.
+   * @param {string} ref Name of the ref to remove.
+   * @param {ReactOwner} owner Component on which the ref is recorded.
+   * @final
+   * @internal
+   */
+  removeComponentAsRefFrom: function(component, ref, owner) {
+    invariant(
+      ReactOwner.isValidOwner(owner),
+      'removeComponentAsRefFrom(...): Only a ReactOwner can have refs.'
+    );
+    // Check that `component` is still the current ref because we do not want to
+    // detach the ref if another component stole it.
+    if (owner.refs[ref] === component) {
+      owner.detachRef(ref);
+    }
+  },
+
+  /**
+   * A ReactComponent must mix this in to have refs.
+   *
+   * @lends {ReactOwner.prototype}
+   */
+  Mixin: {
+
+    /**
+     * Lazily allocates the refs object and stores `component` as `ref`.
+     *
+     * @param {string} ref Reference name.
+     * @param {component} component Component to store as `ref`.
+     * @final
+     * @private
+     */
+    attachRef: function(ref, component) {
+      invariant(
+        component.isOwnedBy(this),
+        'attachRef(%s, ...): Only a component\'s owner can store a ref to it.',
+        ref
+      );
+      var refs = this.refs || (this.refs = {});
+      refs[ref] = component;
+    },
+
+    /**
+     * Detaches a reference name.
+     *
+     * @param {string} ref Name to dereference.
+     * @final
+     * @private
+     */
+    detachRef: function(ref) {
+      delete this.refs[ref];
+    }
+
+  }
+
+};
+
+module.exports = ReactOwner;
+
+},{"./invariant":13}],11:[function(require,module,exports){
+/**
+ * Copyright 2013 Facebook, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @providesModule ReactPropTransferer
+ */
+
+"use strict";
+
+var emptyFunction = require("./emptyFunction");
+var joinClasses = require("./joinClasses");
+var merge = require("./merge");
+
+/**
+ * Creates a transfer strategy that will merge prop values using the supplied
+ * `mergeStrategy`. If a prop was previously unset, this just sets it.
+ *
+ * @param {function} mergeStrategy
+ * @return {function}
+ */
+function createTransferStrategy(mergeStrategy) {
+  return function(props, key, value) {
+    if (!props.hasOwnProperty(key)) {
+      props[key] = value;
+    } else {
+      props[key] = mergeStrategy(props[key], value);
+    }
+  };
+}
+
+/**
+ * Transfer strategies dictate how props are transferred by `transferPropsTo`.
+ */
+var TransferStrategies = {
+  /**
+   * Never transfer `children`.
+   */
+  children: emptyFunction,
+  /**
+   * Transfer the `className` prop by merging them.
+   */
+  className: createTransferStrategy(joinClasses),
+  /**
+   * Never transfer the `ref` prop.
+   */
+  ref: emptyFunction,
+  /**
+   * Transfer the `style` prop (which is an object) by merging them.
+   */
+  style: createTransferStrategy(merge)
+};
+
+/**
+ * ReactPropTransferer are capable of transferring props to another component
+ * using a `transferPropsTo` method.
+ *
+ * @class ReactPropTransferer
+ */
+var ReactPropTransferer = {
+
+  TransferStrategies: TransferStrategies,
+
+  /**
+   * @lends {ReactPropTransferer.prototype}
+   */
+  Mixin: {
+
+    /**
+     * Transfer props from this component to a target component.
+     *
+     * Props that do not have an explicit transfer strategy will be transferred
+     * only if the target component does not already have the prop set.
+     *
+     * This is usually used to pass down props to a returned root component.
+     *
+     * @param {ReactComponent} component Component receiving the properties.
+     * @return {ReactComponent} The supplied `component`.
+     * @final
+     * @protected
+     */
+    transferPropsTo: function(component) {
+      var props = {};
+      for (var thatKey in component.props) {
+        if (component.props.hasOwnProperty(thatKey)) {
+          props[thatKey] = component.props[thatKey];
+        }
+      }
+      for (var thisKey in this.props) {
+        if (!this.props.hasOwnProperty(thisKey)) {
+          continue;
+        }
+        var transferStrategy = TransferStrategies[thisKey];
+        if (transferStrategy) {
+          transferStrategy(props, thisKey, this.props[thisKey]);
+        } else if (!props.hasOwnProperty(thisKey)) {
+          props[thisKey] = this.props[thisKey];
+        }
+      }
+      component.props = props;
+      return component;
+    }
+
+  }
+
+};
+
+module.exports = ReactPropTransferer;
+
+},{"./emptyFunction":39,"./joinClasses":40,"./merge":15}],12:[function(require,module,exports){
+/**
+ * Copyright 2013 Facebook, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @providesModule ReactUpdates
+ */
+
+"use strict";
+
+var invariant = require("./invariant");
+
+var isBatchingUpdates = false;
+
+var dirtyComponents = [];
+
+/**
+ * Call the provided function in a context within which calls to `setState` and
+ * friends are batched such that components aren't updated unnecessarily.
+ */
+function batchedUpdates(callback) {
+  invariant(
+    !isBatchingUpdates,
+    'batchedUpates(...): Attempt to batch updates in a context where updates ' +
+    'are already being batched.'
+  );
+  isBatchingUpdates = true;
+
+  try {
+    callback();
+    // TODO: Sort components by depth such that parent components update first
+    for (var i = 0; i < dirtyComponents.length; i++) {
+      // If a component is unmounted before pending changes apply, ignore them
+      // TODO: Queue unmounts in the same list to avoid this happening at all
+      var component = dirtyComponents[i];
+      if (component.isMounted()) {
+        // If performUpdateIfNecessary happens to enqueue any new updates, we
+        // shouldn't execute the callbacks until the next render happens, so
+        // stash the callbacks first
+        var callbacks = component._pendingCallbacks;
+        component._pendingCallbacks = null;
+        component.performUpdateIfNecessary();
+        if (callbacks) {
+          for (var j = 0; j < callbacks.length; j++) {
+            callbacks[j]();
+          }
+        }
+      }
+    }
+  } catch (error) {
+    // IE8 requires `catch` in order to use `finally`.
+    throw error;
+  } finally {
+    dirtyComponents.length = 0;
+    isBatchingUpdates = false;
+  }
+}
+
+/**
+ * Mark a component as needing a rerender, adding an optional callback to a
+ * list of functions which will be executed once the rerender occurs.
+ */
+function enqueueUpdate(component, callback) {
+  invariant(
+    !callback || typeof callback === "function",
+    'enqueueUpdate(...): You called `setProps`, `replaceProps`, ' +
+    '`setState`, `replaceState`, or `forceUpdate` with a callback that ' +
+    'isn\'t callable.'
+  );
+
+  if (!isBatchingUpdates) {
+    component.performUpdateIfNecessary();
+    callback && callback();
+    return;
+  }
+
+  dirtyComponents.push(component);
+
+  if (callback) {
+    if (component._pendingCallbacks) {
+      component._pendingCallbacks.push(callback);
+    } else {
+      component._pendingCallbacks = [callback];
+    }
+  }
+}
+
+var ReactUpdates = {
+  batchedUpdates: batchedUpdates,
+  enqueueUpdate: enqueueUpdate
+};
+
+module.exports = ReactUpdates;
+
+},{"./invariant":13}],14:[function(require,module,exports){
+/**
+ * Copyright 2013 Facebook, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @providesModule keyMirror
+ */
+
+"use strict";
+
+var throwIf = require("./throwIf");
+
+var NOT_OBJECT_ERROR = 'NOT_OBJECT_ERROR';
+if (true) {
+  NOT_OBJECT_ERROR = 'keyMirror only works on objects';
+}
+
+/**
+ * Utility for constructing enums with keys being equal to the associated
+ * values, even when using advanced key crushing. This is useful for debugging,
+ * but also for using the values themselves as lookups into the enum.
+ * Example:
+ * var COLORS = keyMirror({blue: null, red: null});
+ * var myColor = COLORS.blue;
+ * var isColorValid = !!COLORS[myColor]
+ * The last line could not be performed if the values of the generated enum were
+ * not equal to their keys.
+ * Input:  {key1: val1, key2: val2}
+ * Output: {key1: key1, key2: key2}
+ */
+var keyMirror = function(obj) {
+  var ret = {};
+  var key;
+
+  throwIf(!(obj instanceof Object) || Array.isArray(obj), NOT_OBJECT_ERROR);
+
+  for (key in obj) {
+    if (!obj.hasOwnProperty(key)) {
+      continue;
+    }
+    ret[key] = key;
+  }
+  return ret;
+};
+
+module.exports = keyMirror;
+
+},{"./throwIf":41}],15:[function(require,module,exports){
+/**
+ * Copyright 2013 Facebook, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @providesModule merge
+ */
+
+"use strict";
+
+var mergeInto = require("./mergeInto");
+
+/**
+ * Shallow merges two structures into a return value, without mutating either.
+ *
+ * @param {?object} one Optional object with properties to merge from.
+ * @param {?object} two Optional object with properties to merge from.
+ * @return {object} The shallow extension of one by two.
+ */
+var merge = function(one, two) {
+  var result = {};
+  mergeInto(result, one);
+  mergeInto(result, two);
+  return result;
+};
+
+module.exports = merge;
+
+},{"./mergeInto":21}],17:[function(require,module,exports){
 (function(){/**
  * Copyright 2013 Facebook, Inc.
  *
@@ -2604,7 +3083,7 @@ var ReactDOMIDOperations = {
 module.exports = ReactDOMIDOperations;
 
 })()
-},{"./CSSPropertyOperations":38,"./DOMChildrenOperations":39,"./DOMPropertyOperations":40,"./ReactID":11,"./getTextContentAccessor":41,"./invariant":15}],11:[function(require,module,exports){
+},{"./CSSPropertyOperations":42,"./DOMChildrenOperations":43,"./DOMPropertyOperations":44,"./ReactID":18,"./getTextContentAccessor":45,"./invariant":13}],18:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -2779,155 +3258,7 @@ exports.getNode = getNode;
 exports.purgeID = purgeID;
 exports.purgeEntireCache = purgeEntireCache;
 
-},{"./invariant":15,"./ReactMount":5}],12:[function(require,module,exports){
-/**
- * Copyright 2013 Facebook, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * @providesModule ReactOwner
- */
-
-"use strict";
-
-var invariant = require("./invariant");
-
-/**
- * ReactOwners are capable of storing references to owned components.
- *
- * All components are capable of //being// referenced by owner components, but
- * only ReactOwner components are capable of //referencing// owned components.
- * The named reference is known as a "ref".
- *
- * Refs are available when mounted and updated during reconciliation.
- *
- *   var MyComponent = React.createClass({
- *     render: function() {
- *       return (
- *         <div onClick={this.handleClick}>
- *           <CustomComponent ref="custom" />
- *         </div>
- *       );
- *     },
- *     handleClick: React.autoBind(function() {
- *       this.refs.custom.handleClick();
- *     }),
- *     componentDidMount: function() {
- *       this.refs.custom.initialize();
- *     }
- *   });
- *
- * Refs should rarely be used. When refs are used, they should only be done to
- * control data that is not handled by React's data flow.
- *
- * @class ReactOwner
- */
-var ReactOwner = {
-
-  /**
-   * @param {?object} object
-   * @return {boolean} True if `object` is a valid owner.
-   * @final
-   */
-  isValidOwner: function(object) {
-    return !!(
-      object &&
-      typeof object.attachRef === 'function' &&
-      typeof object.detachRef === 'function'
-    );
-  },
-
-  /**
-   * Adds a component by ref to an owner component.
-   *
-   * @param {ReactComponent} component Component to reference.
-   * @param {string} ref Name by which to refer to the component.
-   * @param {ReactOwner} owner Component on which to record the ref.
-   * @final
-   * @internal
-   */
-  addComponentAsRefTo: function(component, ref, owner) {
-    invariant(
-      ReactOwner.isValidOwner(owner),
-      'addComponentAsRefTo(...): Only a ReactOwner can have refs.'
-    );
-    owner.attachRef(ref, component);
-  },
-
-  /**
-   * Removes a component by ref from an owner component.
-   *
-   * @param {ReactComponent} component Component to dereference.
-   * @param {string} ref Name of the ref to remove.
-   * @param {ReactOwner} owner Component on which the ref is recorded.
-   * @final
-   * @internal
-   */
-  removeComponentAsRefFrom: function(component, ref, owner) {
-    invariant(
-      ReactOwner.isValidOwner(owner),
-      'removeComponentAsRefFrom(...): Only a ReactOwner can have refs.'
-    );
-    // Check that `component` is still the current ref because we do not want to
-    // detach the ref if another component stole it.
-    if (owner.refs[ref] === component) {
-      owner.detachRef(ref);
-    }
-  },
-
-  /**
-   * A ReactComponent must mix this in to have refs.
-   *
-   * @lends {ReactOwner.prototype}
-   */
-  Mixin: {
-
-    /**
-     * Lazily allocates the refs object and stores `component` as `ref`.
-     *
-     * @param {string} ref Reference name.
-     * @param {component} component Component to store as `ref`.
-     * @final
-     * @private
-     */
-    attachRef: function(ref, component) {
-      invariant(
-        component.isOwnedBy(this),
-        'attachRef(%s, ...): Only a component\'s owner can store a ref to it.',
-        ref
-      );
-      var refs = this.refs || (this.refs = {});
-      refs[ref] = component;
-    },
-
-    /**
-     * Detaches a reference name.
-     *
-     * @param {string} ref Name to dereference.
-     * @final
-     * @private
-     */
-    detachRef: function(ref) {
-      delete this.refs[ref];
-    }
-
-  }
-
-};
-
-module.exports = ReactOwner;
-
-},{"./invariant":15}],13:[function(require,module,exports){
+},{"./invariant":13,"./ReactMount":5}],19:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -3090,7 +3421,7 @@ PooledClass.addPoolingTo(ReactReconcileTransaction);
 
 module.exports = ReactReconcileTransaction;
 
-},{"./ExecutionEnvironment":42,"./PooledClass":43,"./ReactEventEmitter":23,"./ReactInputSelection":44,"./ReactOnDOMReady":45,"./Transaction":46,"./mixInto":19}],14:[function(require,module,exports){
+},{"./ExecutionEnvironment":46,"./PooledClass":47,"./ReactEventEmitter":23,"./ReactInputSelection":48,"./ReactOnDOMReady":49,"./Transaction":50,"./mixInto":16}],21:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -3106,313 +3437,38 @@ module.exports = ReactReconcileTransaction;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @providesModule ReactUpdates
+ * @providesModule mergeInto
+ * @typechecks static-only
  */
 
 "use strict";
 
-var invariant = require("./invariant");
+var mergeHelpers = require("./mergeHelpers");
 
-var isBatchingUpdates = false;
-
-var dirtyComponents = [];
+var checkMergeObjectArg = mergeHelpers.checkMergeObjectArg;
 
 /**
- * Call the provided function in a context within which calls to `setState` and
- * friends are batched such that components aren't updated unnecessarily.
- */
-function batchedUpdates(callback) {
-  invariant(
-    !isBatchingUpdates,
-    'batchedUpates(...): Attempt to batch updates in a context where updates ' +
-    'are already being batched.'
-  );
-  isBatchingUpdates = true;
-
-  try {
-    callback();
-    // TODO: Sort components by depth such that parent components update first
-    for (var i = 0; i < dirtyComponents.length; i++) {
-      // If a component is unmounted before pending changes apply, ignore them
-      // TODO: Queue unmounts in the same list to avoid this happening at all
-      var component = dirtyComponents[i];
-      if (component.isMounted()) {
-        // If performUpdateIfNecessary happens to enqueue any new updates, we
-        // shouldn't execute the callbacks until the next render happens, so
-        // stash the callbacks first
-        var callbacks = component._pendingCallbacks;
-        component._pendingCallbacks = null;
-        component.performUpdateIfNecessary();
-        if (callbacks) {
-          for (var j = 0; j < callbacks.length; j++) {
-            callbacks[j]();
-          }
-        }
-      }
-    }
-  } catch (error) {
-    // IE8 requires `catch` in order to use `finally`.
-    throw error;
-  } finally {
-    dirtyComponents.length = 0;
-    isBatchingUpdates = false;
-  }
-}
-
-/**
- * Mark a component as needing a rerender, adding an optional callback to a
- * list of functions which will be executed once the rerender occurs.
- */
-function enqueueUpdate(component, callback) {
-  invariant(
-    !callback || typeof callback === "function",
-    'enqueueUpdate(...): You called `setProps`, `replaceProps`, ' +
-    '`setState`, `replaceState`, or `forceUpdate` with a callback that ' +
-    'isn\'t callable.'
-  );
-
-  if (!isBatchingUpdates) {
-    component.performUpdateIfNecessary();
-    callback && callback();
-    return;
-  }
-
-  dirtyComponents.push(component);
-
-  if (callback) {
-    if (component._pendingCallbacks) {
-      component._pendingCallbacks.push(callback);
-    } else {
-      component._pendingCallbacks = [callback];
-    }
-  }
-}
-
-var ReactUpdates = {
-  batchedUpdates: batchedUpdates,
-  enqueueUpdate: enqueueUpdate
-};
-
-module.exports = ReactUpdates;
-
-},{"./invariant":15}],16:[function(require,module,exports){
-/**
- * Copyright 2013 Facebook, Inc.
+ * Shallow merges two structures by mutating the first parameter.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * @providesModule keyMirror
- */
-
-"use strict";
-
-var throwIf = require("./throwIf");
-
-var NOT_OBJECT_ERROR = 'NOT_OBJECT_ERROR';
-if (true) {
-  NOT_OBJECT_ERROR = 'keyMirror only works on objects';
-}
-
-/**
- * Utility for constructing enums with keys being equal to the associated
- * values, even when using advanced key crushing. This is useful for debugging,
- * but also for using the values themselves as lookups into the enum.
- * Example:
- * var COLORS = keyMirror({blue: null, red: null});
- * var myColor = COLORS.blue;
- * var isColorValid = !!COLORS[myColor]
- * The last line could not be performed if the values of the generated enum were
- * not equal to their keys.
- * Input:  {key1: val1, key2: val2}
- * Output: {key1: key1, key2: key2}
- */
-var keyMirror = function(obj) {
-  var ret = {};
-  var key;
-
-  throwIf(!(obj instanceof Object) || Array.isArray(obj), NOT_OBJECT_ERROR);
-
-  for (key in obj) {
-    if (!obj.hasOwnProperty(key)) {
-      continue;
-    }
-    ret[key] = key;
-  }
-  return ret;
-};
-
-module.exports = keyMirror;
-
-},{"./throwIf":47}],17:[function(require,module,exports){
-/**
- * Copyright 2013 Facebook, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * @providesModule merge
- */
-
-"use strict";
-
-var mergeInto = require("./mergeInto");
-
-/**
- * Shallow merges two structures into a return value, without mutating either.
- *
- * @param {?object} one Optional object with properties to merge from.
+ * @param {object} one Object to be merged into.
  * @param {?object} two Optional object with properties to merge from.
- * @return {object} The shallow extension of one by two.
  */
-var merge = function(one, two) {
-  var result = {};
-  mergeInto(result, one);
-  mergeInto(result, two);
-  return result;
-};
-
-module.exports = merge;
-
-},{"./mergeInto":21}],18:[function(require,module,exports){
-/**
- * Copyright 2013 Facebook, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * @providesModule ReactPropTransferer
- */
-
-"use strict";
-
-var emptyFunction = require("./emptyFunction");
-var joinClasses = require("./joinClasses");
-var merge = require("./merge");
-
-/**
- * Creates a transfer strategy that will merge prop values using the supplied
- * `mergeStrategy`. If a prop was previously unset, this just sets it.
- *
- * @param {function} mergeStrategy
- * @return {function}
- */
-function createTransferStrategy(mergeStrategy) {
-  return function(props, key, value) {
-    if (!props.hasOwnProperty(key)) {
-      props[key] = value;
-    } else {
-      props[key] = mergeStrategy(props[key], value);
+function mergeInto(one, two) {
+  checkMergeObjectArg(one);
+  if (two != null) {
+    checkMergeObjectArg(two);
+    for (var key in two) {
+      if (!two.hasOwnProperty(key)) {
+        continue;
+      }
+      one[key] = two[key];
     }
-  };
+  }
 }
 
-/**
- * Transfer strategies dictate how props are transferred by `transferPropsTo`.
- */
-var TransferStrategies = {
-  /**
-   * Never transfer `children`.
-   */
-  children: emptyFunction,
-  /**
-   * Transfer the `className` prop by merging them.
-   */
-  className: createTransferStrategy(joinClasses),
-  /**
-   * Never transfer the `ref` prop.
-   */
-  ref: emptyFunction,
-  /**
-   * Transfer the `style` prop (which is an object) by merging them.
-   */
-  style: createTransferStrategy(merge)
-};
+module.exports = mergeInto;
 
-/**
- * ReactPropTransferer are capable of transferring props to another component
- * using a `transferPropsTo` method.
- *
- * @class ReactPropTransferer
- */
-var ReactPropTransferer = {
-
-  TransferStrategies: TransferStrategies,
-
-  /**
-   * @lends {ReactPropTransferer.prototype}
-   */
-  Mixin: {
-
-    /**
-     * Transfer props from this component to a target component.
-     *
-     * Props that do not have an explicit transfer strategy will be transferred
-     * only if the target component does not already have the prop set.
-     *
-     * This is usually used to pass down props to a returned root component.
-     *
-     * @param {ReactComponent} component Component receiving the properties.
-     * @return {ReactComponent} The supplied `component`.
-     * @final
-     * @protected
-     */
-    transferPropsTo: function(component) {
-      var props = {};
-      for (var thatKey in component.props) {
-        if (component.props.hasOwnProperty(thatKey)) {
-          props[thatKey] = component.props[thatKey];
-        }
-      }
-      for (var thisKey in this.props) {
-        if (!this.props.hasOwnProperty(thisKey)) {
-          continue;
-        }
-        var transferStrategy = TransferStrategies[thisKey];
-        if (transferStrategy) {
-          transferStrategy(props, thisKey, this.props[thisKey]);
-        } else if (!props.hasOwnProperty(thisKey)) {
-          props[thisKey] = this.props[thisKey];
-        }
-      }
-      component.props = props;
-      return component;
-    }
-
-  }
-
-};
-
-module.exports = ReactPropTransferer;
-
-},{"./emptyFunction":48,"./joinClasses":49,"./merge":17}],20:[function(require,module,exports){
+},{"./mergeHelpers":51}],20:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -3772,54 +3828,7 @@ mixInto(ReactNativeComponent, ReactMultiChild.Mixin);
 
 module.exports = ReactNativeComponent;
 
-},{"./CSSPropertyOperations":38,"./DOMPropertyOperations":40,"./ReactComponent":3,"./ReactEventEmitter":23,"./ReactMultiChild":50,"./ReactID":11,"./escapeTextForBrowser":51,"./flattenChildren":52,"./invariant":15,"./keyOf":53,"./merge":17,"./mixInto":19}],21:[function(require,module,exports){
-/**
- * Copyright 2013 Facebook, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * @providesModule mergeInto
- * @typechecks static-only
- */
-
-"use strict";
-
-var mergeHelpers = require("./mergeHelpers");
-
-var checkMergeObjectArg = mergeHelpers.checkMergeObjectArg;
-
-/**
- * Shallow merges two structures by mutating the first parameter.
- *
- * @param {object} one Object to be merged into.
- * @param {?object} two Optional object with properties to merge from.
- */
-function mergeInto(one, two) {
-  checkMergeObjectArg(one);
-  if (two != null) {
-    checkMergeObjectArg(two);
-    for (var key in two) {
-      if (!two.hasOwnProperty(key)) {
-        continue;
-      }
-      one[key] = two[key];
-    }
-  }
-}
-
-module.exports = mergeInto;
-
-},{"./mergeHelpers":54}],23:[function(require,module,exports){
+},{"./CSSPropertyOperations":42,"./DOMPropertyOperations":44,"./ReactComponent":3,"./ReactEventEmitter":23,"./ReactMultiChild":52,"./ReactID":18,"./escapeTextForBrowser":53,"./flattenChildren":54,"./keyOf":55,"./invariant":13,"./merge":15,"./mixInto":16}],23:[function(require,module,exports){
 (function(){/**
  * Copyright 2013 Facebook, Inc.
  *
@@ -4168,7 +4177,7 @@ var ReactEventEmitter = {
 module.exports = ReactEventEmitter;
 
 })()
-},{"./EventConstants":55,"./EventListener":56,"./EventPluginHub":36,"./ExecutionEnvironment":42,"./ReactUpdates":14,"./ViewportMetrics":57,"./invariant":15,"./isEventSupported":58}],24:[function(require,module,exports){
+},{"./EventConstants":56,"./EventListener":57,"./EventPluginHub":36,"./ExecutionEnvironment":46,"./ReactUpdates":12,"./ViewportMetrics":58,"./invariant":13,"./isEventSupported":59}],24:[function(require,module,exports){
 (function(global){/**
  * Copyright 2013 Facebook, Inc.
  *
@@ -4552,7 +4561,55 @@ var ReactInstanceHandles = {
 module.exports = ReactInstanceHandles;
 
 })(window)
-},{"./ReactID":11,"./invariant":15}],25:[function(require,module,exports){
+},{"./ReactID":18,"./invariant":13}],26:[function(require,module,exports){
+/**
+ * Copyright 2013 Facebook, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @providesModule $
+ */
+
+var ge = require("./ge");
+
+/**
+ * Find a node by ID.
+ *
+ * If your application code depends on the existence of the element, use $,
+ * which will throw if the element doesn't exist.
+ *
+ * If you're not sure whether or not the element exists, use ge instead, and
+ * manually check for the element's existence in your application code.
+ */
+function $(arg) {
+  var element = ge(arg);
+  if (!element) {
+    if (typeof arg == 'undefined') {
+      arg = 'undefined';
+    } else if (arg === null) {
+      arg = 'null';
+    }
+    throw new Error(
+      'Tried to get element "' + arg.toString() + '" but it is not present ' +
+      'on the page.'
+    );
+  }
+  return element;
+}
+
+module.exports = $;
+
+},{"./ge":60}],25:[function(require,module,exports){
 (function(){/**
  * Copyright 2013 Facebook, Inc.
  *
@@ -4646,55 +4703,7 @@ var ReactEventTopLevelCallback = {
 module.exports = ReactEventTopLevelCallback;
 
 })()
-},{"./ExecutionEnvironment":42,"./ReactEventEmitter":23,"./ReactID":11,"./ReactInstanceHandles":24,"./getEventTarget":59}],26:[function(require,module,exports){
-/**
- * Copyright 2013 Facebook, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * @providesModule $
- */
-
-var ge = require("./ge");
-
-/**
- * Find a node by ID.
- *
- * If your application code depends on the existence of the element, use $,
- * which will throw if the element doesn't exist.
- *
- * If you're not sure whether or not the element exists, use ge instead, and
- * manually check for the element's existence in your application code.
- */
-function $(arg) {
-  var element = ge(arg);
-  if (!element) {
-    if (typeof arg == 'undefined') {
-      arg = 'undefined';
-    } else if (arg === null) {
-      arg = 'null';
-    }
-    throw new Error(
-      'Tried to get element "' + arg.toString() + '" but it is not present ' +
-      'on the page.'
-    );
-  }
-  return element;
-}
-
-module.exports = $;
-
-},{"./ge":60}],27:[function(require,module,exports){
+},{"./ExecutionEnvironment":46,"./ReactEventEmitter":23,"./ReactID":18,"./ReactInstanceHandles":24,"./getEventTarget":61}],27:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -4759,7 +4768,7 @@ function createObjectFrom(keys, values /* = true */) {
 
 module.exports = createObjectFrom;
 
-},{"./hasArrayNature":61}],28:[function(require,module,exports){
+},{"./hasArrayNature":62}],28:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -4813,7 +4822,7 @@ var ReactDOMForm = ReactCompositeComponent.createClass({
 
 module.exports = ReactDOMForm;
 
-},{"./ReactCompositeComponent":2,"./ReactDOM":4,"./ReactEventEmitter":23,"./EventConstants":55}],29:[function(require,module,exports){
+},{"./ReactCompositeComponent":2,"./ReactDOM":4,"./ReactEventEmitter":23,"./EventConstants":56}],29:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -4927,7 +4936,7 @@ var ReactDOMInput = ReactCompositeComponent.createClass({
 
 module.exports = ReactDOMInput;
 
-},{"./DOMPropertyOperations":40,"./ReactCompositeComponent":2,"./ReactDOM":4,"./merge":17}],30:[function(require,module,exports){
+},{"./DOMPropertyOperations":44,"./ReactCompositeComponent":2,"./ReactDOM":4,"./merge":15}],30:[function(require,module,exports){
 (function(global){/**
  * Copyright 2013 Facebook, Inc.
  *
@@ -5066,7 +5075,7 @@ var ReactDOMTextarea = ReactCompositeComponent.createClass({
 module.exports = ReactDOMTextarea;
 
 })(window)
-},{"./DOMPropertyOperations":40,"./ReactCompositeComponent":2,"./ReactDOM":4,"./invariant":15,"./merge":17}],31:[function(require,module,exports){
+},{"./DOMPropertyOperations":44,"./ReactDOM":4,"./ReactCompositeComponent":2,"./invariant":13,"./merge":15}],32:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -5208,7 +5217,7 @@ var DefaultDOMPropertyConfig = {
 
 module.exports = DefaultDOMPropertyConfig;
 
-},{"./DOMProperty":32}],32:[function(require,module,exports){
+},{"./DOMProperty":31}],31:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -5443,7 +5452,7 @@ var DOMProperty = {
 
 module.exports = DOMProperty;
 
-},{"./invariant":15}],33:[function(require,module,exports){
+},{"./invariant":13}],33:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -5486,7 +5495,7 @@ var DefaultEventPluginOrder = [
 
 module.exports = DefaultEventPluginOrder;
 
-},{"./keyOf":53}],34:[function(require,module,exports){
+},{"./keyOf":55}],34:[function(require,module,exports){
 (function(){/**
  * Copyright 2013 Facebook, Inc.
  *
@@ -5597,7 +5606,7 @@ var EnterLeaveEventPlugin = {
 module.exports = EnterLeaveEventPlugin;
 
 })()
-},{"./EventConstants":55,"./EventPropagators":62,"./ExecutionEnvironment":42,"./ReactInstanceHandles":24,"./SyntheticMouseEvent":63,"./ReactID":11,"./keyOf":53}],35:[function(require,module,exports){
+},{"./EventConstants":56,"./ExecutionEnvironment":46,"./EventPropagators":63,"./ReactInstanceHandles":24,"./SyntheticMouseEvent":64,"./ReactID":18,"./keyOf":55}],35:[function(require,module,exports){
 (function(){/**
  * Copyright 2013 Facebook, Inc.
  *
@@ -5993,7 +6002,7 @@ var ChangeEventPlugin = {
 module.exports = ChangeEventPlugin;
 
 })()
-},{"./EventConstants":55,"./EventPluginHub":36,"./EventPropagators":62,"./ExecutionEnvironment":42,"./SyntheticEvent":64,"./isEventSupported":58,"./keyOf":53}],36:[function(require,module,exports){
+},{"./EventConstants":56,"./EventPluginHub":36,"./EventPropagators":63,"./ExecutionEnvironment":46,"./SyntheticEvent":65,"./isEventSupported":59,"./keyOf":55}],36:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -6185,7 +6194,7 @@ if (ExecutionEnvironment.canUseDOM) {
 
 module.exports = EventPluginHub;
 
-},{"./CallbackRegistry":65,"./EventPluginRegistry":66,"./EventPluginUtils":67,"./EventPropagators":62,"./ExecutionEnvironment":42,"./accumulate":68,"./forEachAccumulated":69,"./invariant":15}],37:[function(require,module,exports){
+},{"./CallbackRegistry":66,"./EventPluginRegistry":67,"./EventPluginUtils":68,"./EventPropagators":63,"./ExecutionEnvironment":46,"./accumulate":69,"./forEachAccumulated":70,"./invariant":13}],37:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -6522,7 +6531,201 @@ var SimpleEventPlugin = {
 
 module.exports = SimpleEventPlugin;
 
-},{"./EventConstants":55,"./EventPropagators":62,"./SyntheticEvent":64,"./SyntheticFocusEvent":70,"./SyntheticKeyboardEvent":71,"./SyntheticMouseEvent":63,"./SyntheticMutationEvent":72,"./SyntheticTouchEvent":73,"./SyntheticUIEvent":74,"./SyntheticWheelEvent":75,"./invariant":15,"./keyOf":53}],42:[function(require,module,exports){
+},{"./EventConstants":56,"./EventPropagators":63,"./SyntheticEvent":65,"./SyntheticFocusEvent":71,"./SyntheticKeyboardEvent":72,"./SyntheticMouseEvent":64,"./SyntheticMutationEvent":73,"./SyntheticTouchEvent":74,"./SyntheticUIEvent":75,"./SyntheticWheelEvent":76,"./invariant":13,"./keyOf":55}],38:[function(require,module,exports){
+/**
+ * Copyright 2013 Facebook, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @providesModule TapEventPlugin
+ * @typechecks static-only
+ */
+
+"use strict";
+
+var EventPluginUtils = require("./EventPluginUtils");
+var EventPropagators = require("./EventPropagators");
+var SyntheticUIEvent = require("./SyntheticUIEvent");
+var TouchEventUtils = require("./TouchEventUtils");
+var ViewportMetrics = require("./ViewportMetrics");
+
+var keyOf = require("./keyOf");
+
+var isStartish = EventPluginUtils.isStartish;
+var isEndish = EventPluginUtils.isEndish;
+
+/**
+ * Number of pixels that are tolerated in between a `touchStart` and `touchEnd`
+ * in order to still be considered a 'tap' event.
+ */
+var tapMoveThreshold = 10;
+var startCoords = {x: null, y: null};
+
+var Axis = {
+  x: {page: 'pageX', client: 'clientX', envScroll: 'currentPageScrollLeft'},
+  y: {page: 'pageY', client: 'clientY', envScroll: 'currentPageScrollTop'}
+};
+
+function getAxisCoordOfEvent(axis, nativeEvent) {
+  var singleTouch = TouchEventUtils.extractSingleTouch(nativeEvent);
+  if (singleTouch) {
+    return singleTouch[axis.page];
+  }
+  return axis.page in nativeEvent ?
+    nativeEvent[axis.page] :
+    nativeEvent[axis.client] + ViewportMetrics[axis.envScroll];
+}
+
+function getDistance(coords, nativeEvent) {
+  var pageX = getAxisCoordOfEvent(Axis.x, nativeEvent);
+  var pageY = getAxisCoordOfEvent(Axis.y, nativeEvent);
+  return Math.pow(
+    Math.pow(pageX - coords.x, 2) + Math.pow(pageY - coords.y, 2),
+    0.5
+  );
+}
+
+var eventTypes = {
+  touchTap: {
+    phasedRegistrationNames: {
+      bubbled: keyOf({onTouchTap: null}),
+      captured: keyOf({onTouchTapCapture: null})
+    }
+  }
+};
+
+var TapEventPlugin = {
+
+  tapMoveThreshold: tapMoveThreshold,
+
+  eventTypes: eventTypes,
+
+  /**
+   * @param {string} topLevelType Record from `EventConstants`.
+   * @param {DOMEventTarget} topLevelTarget The listening component root node.
+   * @param {string} topLevelTargetID ID of `topLevelTarget`.
+   * @param {object} nativeEvent Native browser event.
+   * @return {*} An accumulation of synthetic events.
+   * @see {EventPluginHub.extractEvents}
+   */
+  extractEvents: function(
+      topLevelType,
+      topLevelTarget,
+      topLevelTargetID,
+      nativeEvent) {
+    if (!isStartish(topLevelType) && !isEndish(topLevelType)) {
+      return null;
+    }
+    var event = null;
+    var distance = getDistance(startCoords, nativeEvent);
+    if (isEndish(topLevelType) && distance < tapMoveThreshold) {
+      event = SyntheticUIEvent.getPooled(
+        eventTypes.touchTap,
+        topLevelTargetID,
+        nativeEvent
+      );
+    }
+    if (isStartish(topLevelType)) {
+      startCoords.x = getAxisCoordOfEvent(Axis.x, nativeEvent);
+      startCoords.y = getAxisCoordOfEvent(Axis.y, nativeEvent);
+    } else if (isEndish(topLevelType)) {
+      startCoords.x = 0;
+      startCoords.y = 0;
+    }
+    EventPropagators.accumulateTwoPhaseDispatches(event);
+    return event;
+  }
+
+};
+
+module.exports = TapEventPlugin;
+
+},{"./EventPluginUtils":68,"./EventPropagators":63,"./SyntheticUIEvent":75,"./TouchEventUtils":77,"./ViewportMetrics":58,"./keyOf":55}],40:[function(require,module,exports){
+/**
+ * Copyright 2013 Facebook, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @providesModule joinClasses
+ * @typechecks static-only
+ */
+
+"use strict";
+
+/**
+ * Combines multiple className strings into one.
+ * http://jsperf.com/joinclasses-args-vs-array
+ *
+ * @param {...?string} classes
+ * @return {string}
+ */
+function joinClasses(className/*, ... */) {
+  if (!className) {
+    className = '';
+  }
+  var nextClass;
+  var argLength = arguments.length;
+  if (argLength > 1) {
+    for (var ii = 1; ii < argLength; ii++) {
+      nextClass = arguments[ii];
+      nextClass && (className += ' ' + nextClass);
+    }
+  }
+  return className;
+}
+
+module.exports = joinClasses;
+
+},{}],41:[function(require,module,exports){
+/**
+ * Copyright 2013 Facebook, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @providesModule throwIf
+ */
+
+"use strict";
+
+var throwIf = function(condition, err) {
+  if (condition) {
+    throw new Error(err);
+  }
+};
+
+module.exports = throwIf;
+
+},{}],46:[function(require,module,exports){
 (function(){/**
  * Copyright 2013 Facebook, Inc.
  *
@@ -6568,7 +6771,7 @@ var ExecutionEnvironment = {
 module.exports = ExecutionEnvironment;
 
 })()
-},{}],43:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -6683,7 +6886,7 @@ var PooledClass = {
 
 module.exports = PooledClass;
 
-},{}],44:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -6869,82 +7072,7 @@ var ReactInputSelection = {
 
 module.exports = ReactInputSelection;
 
-},{}],47:[function(require,module,exports){
-/**
- * Copyright 2013 Facebook, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * @providesModule throwIf
- */
-
-"use strict";
-
-var throwIf = function(condition, err) {
-  if (condition) {
-    throw new Error(err);
-  }
-};
-
-module.exports = throwIf;
-
-},{}],49:[function(require,module,exports){
-/**
- * Copyright 2013 Facebook, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * @providesModule joinClasses
- * @typechecks static-only
- */
-
-"use strict";
-
-/**
- * Combines multiple className strings into one.
- * http://jsperf.com/joinclasses-args-vs-array
- *
- * @param {...?string} classes
- * @return {string}
- */
-function joinClasses(className/*, ... */) {
-  if (!className) {
-    className = '';
-  }
-  var nextClass;
-  var argLength = arguments.length;
-  if (argLength > 1) {
-    for (var ii = 1; ii < argLength; ii++) {
-      nextClass = arguments[ii];
-      nextClass && (className += ' ' + nextClass);
-    }
-  }
-  return className;
-}
-
-module.exports = joinClasses;
-
-},{}],53:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -6987,7 +7115,7 @@ var keyOf = function(oneKeyObj) {
 
 module.exports = keyOf;
 
-},{}],56:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -7048,7 +7176,7 @@ var EventListener = {
 
 module.exports = EventListener;
 
-},{}],57:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -7164,7 +7292,7 @@ function _getNodeID(node) {
 
 module.exports = ge;
 
-},{}],61:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -7218,7 +7346,7 @@ function hasArrayNature(obj) {
 
 module.exports = hasArrayNature;
 
-},{}],65:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -7311,7 +7439,7 @@ var CallbackRegistry = {
 
 module.exports = CallbackRegistry;
 
-},{}],69:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -7349,7 +7477,103 @@ var forEachAccumulated = function(arr, cb, scope) {
 
 module.exports = forEachAccumulated;
 
-},{}],38:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
+/**
+ * Copyright 2013 Facebook, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @providesModule TouchEventUtils
+ */
+
+var TouchEventUtils = {
+  /**
+   * Utility function for common case of extracting out the primary touch from a
+   * touch event.
+   * - `touchEnd` events usually do not have the `touches` property.
+   *   http://stackoverflow.com/questions/3666929/
+   *   mobile-sarai-touchend-event-not-firing-when-last-touch-is-removed
+   *
+   * @param {Event} nativeEvent Native event that may or may not be a touch.
+   * @return {TouchesObject?} an object with pageX and pageY or null.
+   */
+  extractSingleTouch: function(nativeEvent) {
+    var touches = nativeEvent.touches;
+    var changedTouches = nativeEvent.changedTouches;
+    var hasTouches = touches && touches.length > 0;
+    var hasChangedTouches = changedTouches && changedTouches.length > 0;
+
+    return !hasTouches && hasChangedTouches ? changedTouches[0] :
+           hasTouches ? touches[0] :
+           nativeEvent;
+  }
+};
+
+module.exports = TouchEventUtils;
+
+},{}],39:[function(require,module,exports){
+/**
+ * Copyright 2013 Facebook, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @providesModule emptyFunction
+ */
+
+var copyProperties = require("./copyProperties");
+
+function makeEmptyFunction(arg) {
+  return function() {
+    return arg;
+  };
+}
+
+/**
+ * This function accepts and discards inputs; it has no side effects. This is
+ * primarily useful idiomatically for overridable function endpoints which
+ * always need to be callable, since JS lacks a null-call idiom ala Cocoa.
+ */
+function emptyFunction() {}
+
+copyProperties(emptyFunction, {
+  thatReturns: makeEmptyFunction,
+  thatReturnsFalse: makeEmptyFunction(false),
+  thatReturnsTrue: makeEmptyFunction(true),
+  thatReturnsNull: makeEmptyFunction(null),
+  thatReturnsThis: function() { return this; },
+  thatReturnsArgument: function(arg) { return arg; },
+  mustImplement: function(module, property) {
+    return function() {
+      if (true) {
+        throw new Error(module + '.' + property + ' must be implemented!');
+      }
+    };
+  }
+});
+
+module.exports = emptyFunction;
+
+},{"./copyProperties":78}],42:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -7448,7 +7672,7 @@ var CSSPropertyOperations = {
 
 module.exports = CSSPropertyOperations;
 
-},{"./CSSProperty":76,"./dangerousStyleValue":77,"./escapeTextForBrowser":51,"./hyphenate":78,"./memoizeStringOnly":79}],39:[function(require,module,exports){
+},{"./CSSProperty":79,"./dangerousStyleValue":80,"./escapeTextForBrowser":53,"./hyphenate":81,"./memoizeStringOnly":82}],43:[function(require,module,exports){
 (function(){/**
  * Copyright 2013 Facebook, Inc.
  *
@@ -7600,7 +7824,7 @@ var DOMChildrenOperations = {
 module.exports = DOMChildrenOperations;
 
 })()
-},{"./Danger":80,"./insertNodeAt":81,"./keyOf":53,"./throwIf":47}],40:[function(require,module,exports){
+},{"./Danger":83,"./insertNodeAt":84,"./keyOf":55,"./throwIf":41}],44:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -7720,7 +7944,7 @@ var DOMPropertyOperations = {
 
 module.exports = DOMPropertyOperations;
 
-},{"./DOMProperty":32,"./escapeTextForBrowser":51,"./memoizeStringOnly":79}],41:[function(require,module,exports){
+},{"./DOMProperty":31,"./escapeTextForBrowser":53,"./memoizeStringOnly":82}],45:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -7762,7 +7986,7 @@ function getTextContentAccessor() {
 
 module.exports = getTextContentAccessor;
 
-},{"./ExecutionEnvironment":42}],45:[function(require,module,exports){
+},{"./ExecutionEnvironment":46}],49:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -7859,7 +8083,7 @@ PooledClass.addPoolingTo(ReactOnDOMReady);
 
 module.exports = ReactOnDOMReady;
 
-},{"./PooledClass":43,"./mixInto":19}],46:[function(require,module,exports){
+},{"./PooledClass":47,"./mixInto":16}],50:[function(require,module,exports){
 (function(){/**
  * Copyright 2013 Facebook, Inc.
  *
@@ -8114,7 +8338,7 @@ var Transaction = {
 module.exports = Transaction;
 
 })()
-},{"./throwIf":47}],48:[function(require,module,exports){
+},{"./throwIf":41}],51:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -8130,43 +8354,155 @@ module.exports = Transaction;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @providesModule emptyFunction
+ * @providesModule mergeHelpers
+ *
+ * requiresPolyfills: Array.isArray
  */
 
-var copyProperties = require("./copyProperties");
+"use strict";
 
-function makeEmptyFunction(arg) {
-  return function() {
-    return arg;
+var keyMirror = require("./keyMirror");
+var throwIf = require("./throwIf");
+
+/*
+ * Maximum number of levels to traverse. Will catch circular structures.
+ * @const
+ */
+var MAX_MERGE_DEPTH = 36;
+
+var ERRORS = keyMirror({
+  MERGE_ARRAY_FAIL: null,
+  MERGE_CORE_FAILURE: null,
+  MERGE_TYPE_USAGE_FAILURE: null,
+  MERGE_DEEP_MAX_LEVELS: null,
+  MERGE_DEEP_NO_ARR_STRATEGY: null
+});
+
+if (true) {
+  ERRORS = {
+    MERGE_ARRAY_FAIL:
+      'Unsupported type passed to a merge function. You may have passed a ' +
+      'structure that contains an array and the merge function does not know ' +
+      'how to merge arrays. ',
+
+    MERGE_CORE_FAILURE:
+      'Critical assumptions about the merge functions have been violated. ' +
+      'This is the fault of the merge functions themselves, not necessarily ' +
+      'the callers.',
+
+    MERGE_TYPE_USAGE_FAILURE:
+      'Calling merge function with invalid types. You may call merge ' +
+      'functions (non-array non-terminal) OR (null/undefined) arguments. ' +
+      'mergeInto functions have the same requirements but with an added ' +
+      'restriction that the first parameter must not be null/undefined.',
+
+    MERGE_DEEP_MAX_LEVELS:
+      'Maximum deep merge depth exceeded. You may attempting to merge ' +
+      'circular structures in an unsupported way.',
+    MERGE_DEEP_NO_ARR_STRATEGY:
+      'You must provide an array strategy to deep merge functions to ' +
+      'instruct the deep merge how to resolve merging two arrays.'
   };
 }
 
 /**
- * This function accepts and discards inputs; it has no side effects. This is
- * primarily useful idiomatically for overridable function endpoints which
- * always need to be callable, since JS lacks a null-call idiom ala Cocoa.
+ * We won't worry about edge cases like new String('x') or new Boolean(true).
+ * Functions are considered terminals, and arrays are not.
+ * @param {*} o The item/object/value to test.
+ * @return {boolean} true iff the argument is a terminal.
  */
-function emptyFunction() {}
+var isTerminal = function(o) {
+  return typeof o !== 'object' || o === null;
+};
 
-copyProperties(emptyFunction, {
-  thatReturns: makeEmptyFunction,
-  thatReturnsFalse: makeEmptyFunction(false),
-  thatReturnsTrue: makeEmptyFunction(true),
-  thatReturnsNull: makeEmptyFunction(null),
-  thatReturnsThis: function() { return this; },
-  thatReturnsArgument: function(arg) { return arg; },
-  mustImplement: function(module, property) {
-    return function() {
-      if (true) {
-        throw new Error(module + '.' + property + ' must be implemented!');
-      }
-    };
-  }
-});
+var mergeHelpers = {
 
-module.exports = emptyFunction;
+  MAX_MERGE_DEPTH: MAX_MERGE_DEPTH,
 
-},{"./copyProperties":82}],50:[function(require,module,exports){
+  isTerminal: isTerminal,
+
+  /**
+   * Converts null/undefined values into empty object.
+   *
+   * @param {?Object=} arg Argument to be normalized (nullable optional)
+   * @return {!Object}
+   */
+  normalizeMergeArg: function(arg) {
+    return arg === undefined || arg === null ? {} : arg;
+  },
+
+  /**
+   * If merging Arrays, a merge strategy *must* be supplied. If not, it is
+   * likely the caller's fault. If this function is ever called with anything
+   * but `one` and `two` being `Array`s, it is the fault of the merge utilities.
+   *
+   * @param {*} one Array to merge into.
+   * @param {*} two Array to merge from.
+   */
+  checkMergeArrayArgs: function(one, two) {
+    throwIf(
+      !Array.isArray(one) || !Array.isArray(two),
+      ERRORS.MERGE_CORE_FAILURE
+    );
+  },
+
+  /**
+   * @param {*} one Object to merge into.
+   * @param {*} two Object to merge from.
+   */
+  checkMergeObjectArgs: function(one, two) {
+    mergeHelpers.checkMergeObjectArg(one);
+    mergeHelpers.checkMergeObjectArg(two);
+  },
+
+  /**
+   * @param {*} arg
+   */
+  checkMergeObjectArg: function(arg) {
+    throwIf(isTerminal(arg) || Array.isArray(arg), ERRORS.MERGE_CORE_FAILURE);
+  },
+
+  /**
+   * Checks that a merge was not given a circular object or an object that had
+   * too great of depth.
+   *
+   * @param {number} Level of recursion to validate against maximum.
+   */
+  checkMergeLevel: function(level) {
+    throwIf(level >= MAX_MERGE_DEPTH, ERRORS.MERGE_DEEP_MAX_LEVELS);
+  },
+
+  /**
+   * Checks that a merge was not given a circular object or an object that had
+   * too great of depth.
+   *
+   * @param {number} Level of recursion to validate against maximum.
+   */
+  checkArrayStrategy: function(strategy) {
+    throwIf(
+      strategy !== undefined && !(strategy in mergeHelpers.ArrayStrategies),
+      ERRORS.MERGE_DEEP_NO_ARR_STRATEGY
+    );
+  },
+
+  /**
+   * Set of possible behaviors of merge algorithms when encountering two Arrays
+   * that must be merged together.
+   * - `clobber`: The left `Array` is ignored.
+   * - `indexByIndex`: The result is achieved by recursively deep merging at
+   *   each index. (not yet supported.)
+   */
+  ArrayStrategies: keyMirror({
+    Clobber: true,
+    IndexByIndex: true
+  }),
+
+  ERRORS: ERRORS
+};
+
+module.exports = mergeHelpers;
+
+},{"./keyMirror":14,"./throwIf":41}],52:[function(require,module,exports){
 (function(){/**
  * Copyright 2013 Facebook, Inc.
  *
@@ -8376,7 +8712,7 @@ var ReactMultiChild = {
 module.exports = ReactMultiChild;
 
 })()
-},{"./ReactComponent":3}],51:[function(require,module,exports){
+},{"./ReactComponent":3}],53:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -8439,7 +8775,7 @@ var escapeTextForBrowser = function (text) {
 
 module.exports = escapeTextForBrowser;
 
-},{"./throwIf":47}],52:[function(require,module,exports){
+},{"./throwIf":41}],54:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -8544,171 +8880,7 @@ function flattenChildren(children) {
 
 module.exports = flattenChildren;
 
-},{"./ReactComponent":3,"./ReactTextComponent":83,"./throwIf":47}],54:[function(require,module,exports){
-/**
- * Copyright 2013 Facebook, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * @providesModule mergeHelpers
- *
- * requiresPolyfills: Array.isArray
- */
-
-"use strict";
-
-var keyMirror = require("./keyMirror");
-var throwIf = require("./throwIf");
-
-/**
- * Maximum number of levels to traverse. Will catch circular structures.
- * @const
- */
-var MAX_MERGE_DEPTH = 36;
-
-var ERRORS = keyMirror({
-  MERGE_ARRAY_FAIL: null,
-  MERGE_CORE_FAILURE: null,
-  MERGE_TYPE_USAGE_FAILURE: null,
-  MERGE_DEEP_MAX_LEVELS: null,
-  MERGE_DEEP_NO_ARR_STRATEGY: null
-});
-
-if (true) {
-  ERRORS = {
-    MERGE_ARRAY_FAIL:
-      'Unsupported type passed to a merge function. You may have passed a ' +
-      'structure that contains an array and the merge function does not know ' +
-      'how to merge arrays. ',
-
-    MERGE_CORE_FAILURE:
-      'Critical assumptions about the merge functions have been violated. ' +
-      'This is the fault of the merge functions themselves, not necessarily ' +
-      'the callers.',
-
-    MERGE_TYPE_USAGE_FAILURE:
-      'Calling merge function with invalid types. You may call merge ' +
-      'functions (non-array non-terminal) OR (null/undefined) arguments. ' +
-      'mergeInto functions have the same requirements but with an added ' +
-      'restriction that the first parameter must not be null/undefined.',
-
-    MERGE_DEEP_MAX_LEVELS:
-      'Maximum deep merge depth exceeded. You may attempting to merge ' +
-      'circular structures in an unsupported way.',
-    MERGE_DEEP_NO_ARR_STRATEGY:
-      'You must provide an array strategy to deep merge functions to ' +
-      'instruct the deep merge how to resolve merging two arrays.'
-  };
-}
-
-/**
- * We won't worry about edge cases like new String('x') or new Boolean(true).
- * Functions are considered terminals, and arrays are not.
- * @param {*} o The item/object/value to test.
- * @return {boolean} true iff the argument is a terminal.
- */
-var isTerminal = function(o) {
-  return typeof o !== 'object' || o === null;
-};
-
-var mergeHelpers = {
-
-  MAX_MERGE_DEPTH: MAX_MERGE_DEPTH,
-
-  isTerminal: isTerminal,
-
-  /**
-   * Converts null/undefined values into empty object.
-   *
-   * @param {?Object=} arg Argument to be normalized (nullable optional)
-   * @return {!Object}
-   */
-  normalizeMergeArg: function(arg) {
-    return arg === undefined || arg === null ? {} : arg;
-  },
-
-  /**
-   * If merging Arrays, a merge strategy *must* be supplied. If not, it is
-   * likely the caller's fault. If this function is ever called with anything
-   * but `one` and `two` being `Array`s, it is the fault of the merge utilities.
-   *
-   * @param {*} one Array to merge into.
-   * @param {*} two Array to merge from.
-   */
-  checkMergeArrayArgs: function(one, two) {
-    throwIf(
-      !Array.isArray(one) || !Array.isArray(two),
-      ERRORS.MERGE_CORE_FAILURE
-    );
-  },
-
-  /**
-   * @param {*} one Object to merge into.
-   * @param {*} two Object to merge from.
-   */
-  checkMergeObjectArgs: function(one, two) {
-    mergeHelpers.checkMergeObjectArg(one);
-    mergeHelpers.checkMergeObjectArg(two);
-  },
-
-  /**
-   * @param {*} arg
-   */
-  checkMergeObjectArg: function(arg) {
-    throwIf(isTerminal(arg) || Array.isArray(arg), ERRORS.MERGE_CORE_FAILURE);
-  },
-
-  /**
-   * Checks that a merge was not given a circular object or an object that had
-   * too great of depth.
-   *
-   * @param {number} Level of recursion to validate against maximum.
-   */
-  checkMergeLevel: function(level) {
-    throwIf(level >= MAX_MERGE_DEPTH, ERRORS.MERGE_DEEP_MAX_LEVELS);
-  },
-
-  /**
-   * Checks that a merge was not given a circular object or an object that had
-   * too great of depth.
-   *
-   * @param {number} Level of recursion to validate against maximum.
-   */
-  checkArrayStrategy: function(strategy) {
-    throwIf(
-      strategy !== undefined && !(strategy in mergeHelpers.ArrayStrategies),
-      ERRORS.MERGE_DEEP_NO_ARR_STRATEGY
-    );
-  },
-
-  /**
-   * Set of possible behaviors of merge algorithms when encountering two Arrays
-   * that must be merged together.
-   * - `clobber`: The left `Array` is ignored.
-   * - `indexByIndex`: The result is achieved by recursively deep merging at
-   *   each index. (not yet supported.)
-   */
-  ArrayStrategies: keyMirror({
-    Clobber: true,
-    IndexByIndex: true
-  }),
-
-  ERRORS: ERRORS
-};
-
-module.exports = mergeHelpers;
-
-},{"./keyMirror":16,"./throwIf":47}],55:[function(require,module,exports){
+},{"./ReactComponent":3,"./ReactTextComponent":85,"./throwIf":41}],56:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -8777,7 +8949,7 @@ var EventConstants = {
 
 module.exports = EventConstants;
 
-},{"./keyMirror":16}],58:[function(require,module,exports){
+},{"./keyMirror":14}],59:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -8853,7 +9025,7 @@ function isEventSupported(eventNameSuffix, capture) {
 
 module.exports = isEventSupported;
 
-},{"./ExecutionEnvironment":42}],59:[function(require,module,exports){
+},{"./ExecutionEnvironment":46}],61:[function(require,module,exports){
 (function(){/**
  * Copyright 2013 Facebook, Inc.
  *
@@ -8897,7 +9069,7 @@ function getEventTarget(nativeEvent) {
 module.exports = getEventTarget;
 
 })()
-},{"./ExecutionEnvironment":42}],62:[function(require,module,exports){
+},{"./ExecutionEnvironment":46}],63:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -9078,7 +9250,7 @@ var EventPropagators = {
 
 module.exports = EventPropagators;
 
-},{"./CallbackRegistry":65,"./EventConstants":55,"./accumulate":68,"./forEachAccumulated":69}],63:[function(require,module,exports){
+},{"./CallbackRegistry":66,"./EventConstants":56,"./accumulate":69,"./forEachAccumulated":70}],64:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -9165,7 +9337,7 @@ SyntheticUIEvent.augmentClass(SyntheticMouseEvent, MouseEventInterface);
 
 module.exports = SyntheticMouseEvent;
 
-},{"./SyntheticUIEvent":74,"./ViewportMetrics":57}],64:[function(require,module,exports){
+},{"./SyntheticUIEvent":75,"./ViewportMetrics":58}],65:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -9324,7 +9496,7 @@ PooledClass.addPoolingTo(SyntheticEvent, PooledClass.threeArgumentPooler);
 
 module.exports = SyntheticEvent;
 
-},{"./PooledClass":43,"./emptyFunction":48,"./getEventTarget":59,"./merge":17,"./mergeInto":21}],66:[function(require,module,exports){
+},{"./PooledClass":47,"./emptyFunction":39,"./getEventTarget":61,"./merge":15,"./mergeInto":21}],67:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -9570,7 +9742,7 @@ var EventPluginRegistry = {
 
 module.exports = EventPluginRegistry;
 
-},{"./invariant":15}],67:[function(require,module,exports){
+},{"./invariant":13}],68:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -9757,7 +9929,7 @@ var EventPluginUtils = {
 
 module.exports = EventPluginUtils;
 
-},{"./EventConstants":55,"./invariant":15}],68:[function(require,module,exports){
+},{"./EventConstants":56,"./invariant":13}],69:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -9829,7 +10001,7 @@ function accumulate(cur, next) {
 
 module.exports = accumulate;
 
-},{"./throwIf":47}],70:[function(require,module,exports){
+},{"./throwIf":41}],71:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -9875,7 +10047,7 @@ SyntheticUIEvent.augmentClass(SyntheticFocusEvent, FocusEventInterface);
 
 module.exports = SyntheticFocusEvent;
 
-},{"./SyntheticUIEvent":74}],71:[function(require,module,exports){
+},{"./SyntheticUIEvent":75}],72:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -9904,7 +10076,7 @@ var SyntheticUIEvent = require("./SyntheticUIEvent");
  * @see http://www.w3.org/TR/DOM-Level-3-Events/
  */
 var KeyboardEventInterface = {
-  'char': null,
+  char: null,
   key: null,
   location: null,
   ctrlKey: null,
@@ -9933,7 +10105,7 @@ SyntheticUIEvent.augmentClass(SyntheticKeyboardEvent, KeyboardEventInterface);
 
 module.exports = SyntheticKeyboardEvent;
 
-},{"./SyntheticUIEvent":74}],72:[function(require,module,exports){
+},{"./SyntheticUIEvent":75}],73:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -9983,7 +10155,7 @@ SyntheticEvent.augmentClass(SyntheticMutationEvent, MutationEventInterface);
 
 module.exports = SyntheticMutationEvent;
 
-},{"./SyntheticEvent":64}],73:[function(require,module,exports){
+},{"./SyntheticEvent":65}],74:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -10035,7 +10207,54 @@ SyntheticUIEvent.augmentClass(SyntheticTouchEvent, TouchEventInterface);
 
 module.exports = SyntheticTouchEvent;
 
-},{"./SyntheticUIEvent":74}],75:[function(require,module,exports){
+},{"./SyntheticUIEvent":75}],75:[function(require,module,exports){
+/**
+ * Copyright 2013 Facebook, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @providesModule SyntheticUIEvent
+ * @typechecks static-only
+ */
+
+"use strict";
+
+var SyntheticEvent = require("./SyntheticEvent");
+
+/**
+ * @interface UIEvent
+ * @see http://www.w3.org/TR/DOM-Level-3-Events/
+ */
+var UIEventInterface = {
+  view: null,
+  detail: null
+};
+
+/**
+ * @param {object} dispatchConfig Configuration used to dispatch this event.
+ * @param {string} dispatchMarker Marker identifying the event target.
+ * @param {object} nativeEvent Native browser event.
+ * @extends {SyntheticEvent}
+ */
+function SyntheticUIEvent(dispatchConfig, dispatchMarker, nativeEvent) {
+  SyntheticEvent.call(this, dispatchConfig, dispatchMarker, nativeEvent);
+}
+
+SyntheticEvent.augmentClass(SyntheticUIEvent, UIEventInterface);
+
+module.exports = SyntheticUIEvent;
+
+},{"./SyntheticEvent":65}],76:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -10100,7 +10319,7 @@ SyntheticMouseEvent.augmentClass(SyntheticWheelEvent, WheelEventInterface);
 
 module.exports = SyntheticWheelEvent;
 
-},{"./SyntheticMouseEvent":63}],74:[function(require,module,exports){
+},{"./SyntheticMouseEvent":64}],78:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -10116,38 +10335,47 @@ module.exports = SyntheticWheelEvent;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @providesModule SyntheticUIEvent
- * @typechecks static-only
+ * @providesModule copyProperties
  */
-
-"use strict";
-
-var SyntheticEvent = require("./SyntheticEvent");
 
 /**
- * @interface UIEvent
- * @see http://www.w3.org/TR/DOM-Level-3-Events/
+ * Copy properties from one or more objects (up to 5) into the first object.
+ * This is a shallow copy. It mutates the first object and also returns it.
+ *
+ * NOTE: `arguments` has a very significant performance penalty, which is why
+ * we don't support unlimited arguments.
  */
-var UIEventInterface = {
-  view: null,
-  detail: null
-};
+function copyProperties(obj, a, b, c, d, e, f) {
+  obj = obj || {};
 
-/**
- * @param {object} dispatchConfig Configuration used to dispatch this event.
- * @param {string} dispatchMarker Marker identifying the event target.
- * @param {object} nativeEvent Native browser event.
- * @extends {SyntheticEvent}
- */
-function SyntheticUIEvent(dispatchConfig, dispatchMarker, nativeEvent) {
-  SyntheticEvent.call(this, dispatchConfig, dispatchMarker, nativeEvent);
+  if (true) {
+    if (f) {
+      throw new Error('Too many arguments passed to copyProperties');
+    }
+  }
+
+  var args = [a, b, c, d, e];
+  var ii = 0, v;
+  while (args[ii]) {
+    v = args[ii++];
+    for (var k in v) {
+      obj[k] = v[k];
+    }
+
+    // IE ignores toString in object iteration.. See:
+    // webreflection.blogspot.com/2007/07/quick-fix-internet-explorer-and.html
+    if (v.hasOwnProperty && v.hasOwnProperty('toString') &&
+        (typeof v.toString != 'undefined') && (obj.toString !== v.toString)) {
+      obj.toString = v.toString;
+    }
+  }
+
+  return obj;
 }
 
-SyntheticEvent.augmentClass(SyntheticUIEvent, UIEventInterface);
+module.exports = copyProperties;
 
-module.exports = SyntheticUIEvent;
-
-},{"./SyntheticEvent":64}],76:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -10238,7 +10466,7 @@ var CSSProperty = {
 
 module.exports = CSSProperty;
 
-},{}],78:[function(require,module,exports){
+},{}],81:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -10275,7 +10503,7 @@ function hyphenate(string) {
 
 module.exports = hyphenate;
 
-},{}],79:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -10316,7 +10544,7 @@ function memoizeStringOnly(callback) {
 
 module.exports = memoizeStringOnly;
 
-},{}],81:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -10364,63 +10592,7 @@ function insertNodeAt(root, node, atIndex) {
 
 module.exports = insertNodeAt;
 
-},{}],82:[function(require,module,exports){
-/**
- * Copyright 2013 Facebook, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * @providesModule copyProperties
- */
-
-/**
- * Copy properties from one or more objects (up to 5) into the first object.
- * This is a shallow copy. It mutates the first object and also returns it.
- *
- * NOTE: `arguments` has a very significant performance penalty, which is why
- * we don't support unlimited arguments.
- */
-function copyProperties(obj, a, b, c, d, e, f) {
-  obj = obj || {};
-
-  if (true) {
-    if (f) {
-      throw new Error('Too many arguments passed to copyProperties');
-    }
-  }
-
-  var args = [a, b, c, d, e];
-  var ii = 0, v;
-  while (args[ii]) {
-    v = args[ii++];
-    for (var k in v) {
-      obj[k] = v[k];
-    }
-
-    // IE ignores toString in object iteration.. See:
-    // webreflection.blogspot.com/2007/07/quick-fix-internet-explorer-and.html
-    if (v.hasOwnProperty && v.hasOwnProperty('toString') &&
-        (typeof v.toString != 'undefined') && (obj.toString !== v.toString)) {
-      obj.toString = v.toString;
-    }
-  }
-
-  return obj;
-}
-
-module.exports = copyProperties;
-
-},{}],77:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -10479,7 +10651,7 @@ function dangerousStyleValue(styleName, value) {
 
 module.exports = dangerousStyleValue;
 
-},{"./CSSProperty":76}],80:[function(require,module,exports){
+},{"./CSSProperty":79}],83:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -10641,7 +10813,7 @@ var Danger = {
 
 module.exports = Danger;
 
-},{"./ExecutionEnvironment":42,"./throwIf":47}],83:[function(require,module,exports){
+},{"./ExecutionEnvironment":46,"./throwIf":41}],85:[function(require,module,exports){
 /**
  * Copyright 2013 Facebook, Inc.
  *
@@ -10729,6 +10901,6 @@ mixInto(ReactTextComponent, {
 
 module.exports = ReactTextComponent;
 
-},{"./ReactComponent":3,"./ReactID":11,"./mixInto":19,"./escapeTextForBrowser":51}]},{},[1])(1)
+},{"./ReactComponent":3,"./ReactID":18,"./escapeTextForBrowser":53,"./mixInto":16}]},{},[1])(1)
 });
 ;

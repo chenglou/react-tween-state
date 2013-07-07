@@ -75,6 +75,7 @@ copyProperties(
 );
 
 var allTweens = [];
+var ticking = false;
 
 function tick() {
   var newTweens = [];
@@ -87,11 +88,20 @@ function tick() {
     }
   }
   allTweens = newTweens;
-  requestAnimationFrame(tick);
+  if (allTweens.length === 0) {
+    ticking = false;
+  } else {
+    requestAnimationFrame(tick);
+  }
 }
 
-tick();
-//setInterval(tick, 100);
+function queueTick() {
+  if (ticking) {
+    return;
+  }
+  ticking = true;
+  requestAnimationFrame(tick);
+}
 
 function Tween(target) {
   this.target = target;
@@ -99,11 +109,19 @@ function Tween(target) {
   this.queuePos = 0;
   this.lastStepStartTime = null;
   allTweens.push(this);
+
+  queueTick();
 }
 
 Tween.get = function(target) {
   return new Tween(target);
 };
+
+// To maintain API compatibility with TweenJS we need
+// to return an object that looks like this. We pool it
+// here such that we don't trigger additional GCs which
+// would suck during a tween.
+var EVENT_SINGLETON = {target: {target: null}};
 
 copyProperties(
   Tween.prototype, {
@@ -122,6 +140,14 @@ copyProperties(
       );
       return this;
     },
+    tickTweenStep: function(time) {
+      this.queue[this.queuePos].tick(
+        this.target,
+        time
+      );
+      EVENT_SINGLETON.target.target = this.target;
+      this.onChange(EVENT_SINGLETON);
+    },
     tick: function(time) {
       if (this.isDone()) {
         return;
@@ -129,16 +155,14 @@ copyProperties(
       if (this.lastStepStartTime === null) {
         this.lastStepStartTime = time;
       } else if (time - this.lastStepStartTime > this.queue[this.queuePos].time) {
-        this.queue[this.queuePos].tick(this.target, this.lastStepStartTime + this.queue[this.queuePos].time);
-        this.onChange({target: {target: this.target}});
+        this.tickTweenStep(this.lastStepStartTime + this.queue[this.queuePos].time);
         this.lastStepStartTime = time;
         this.queuePos++;
       }
       if (this.isDone()) {
         return;
       }
-      this.queue[this.queuePos].tick(this.target, time);
-      this.onChange({target: {target: this.target}});
+      this.tickTweenStep(time);
     },
     isDone: function() {
       return this.queuePos >= this.queue.length;

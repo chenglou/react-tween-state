@@ -44,7 +44,8 @@ var SwipeTarget = React.createClass({
       lastTouchPos: null,
       lastTouchVelocity: null,
       lastTouchTime: null,
-      touchStartPos: null
+      touchStartPos: null,
+      swiping: false
     };
   },
 
@@ -59,7 +60,8 @@ var SwipeTarget = React.createClass({
       lastTouchPos: vector(touch.screenX, touch.screenY),
       lastTouchVelocity: vector(0, 0),
       lastTouchTime: Date.now(),
-      touchStartPos: vector(touch.screenX, touch.screenY)
+      touchStartPos: vector(touch.screenX, touch.screenY),
+      swiping: false
     });
     return false;
   },
@@ -71,7 +73,13 @@ var SwipeTarget = React.createClass({
     var offsetX = touch.screenX - this.state.lastTouchPos.x;
     var offsetY = touch.screenY - this.state.lastTouchPos.y;
 
-    if (this.props.onSwiping) {
+    var swiping = this.state.swiping || isDistanceGreaterThan(
+      this.state.lastTouchPos,
+      this.state.touchStartPos,
+      MIN_SWIPE_DISTANCE
+    );
+
+    if (this.props.onSwiping && swiping) {
       this.props.onSwiping(swipingEvent(vector(offsetX, offsetY), timeDelta));
     }
 
@@ -88,26 +96,21 @@ var SwipeTarget = React.createClass({
     this.setState({
       lastTouchPos: lastTouchPos,
       lastTouchVelocity: lastTouchVelocity,
-      lastTouchTime: time
+      lastTouchTime: time,
+      swiping: swiping
     });
 
     return false;
   },
 
   handleTouchEnd: function(e) {
-    var swiping = isDistanceGreaterThan(
-      this.state.lastTouchPos,
-      this.state.touchStartPos,
-      MIN_SWIPE_DISTANCE
-    );
-
     if (this.props.onStopGesturing) {
-      this.props.onStopGesturing(swiping);
+      this.props.onStopGesturing(this.state.swiping);
     }
 
     // TODO: these velocity calcs could be better? Is there an issue if
     // you hold for a long time?
-    if (this.props.onSwiped && swiping) {
+    if (this.props.onSwiped && this.state.swiping) {
       this.props.onSwiped(swipedEvent(this.state.lastTouchVelocity));
     }
     return false;

@@ -76,7 +76,7 @@ var App = React.createClass({
               Top bar
             </div>
             <div class="Body">
-              <p>Body</p>
+              <p>Open the left menu on a touch device (either drag or tap the button)</p>
               <StaticSprite animating={this.state.animating}>
                 <ExpensiveComponent ticks={this.state.ticks} />
               </StaticSprite>

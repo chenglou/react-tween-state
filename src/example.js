@@ -22,7 +22,7 @@ function round(n, min, max, pct) {
 // Tween constants
 var POS_CLOSED = -150;
 var POS_OPEN = 0;
-var TWEEN_TIME = 200;
+var TWEEN_TIME = 275;
 
 var App = React.createClass({
   mixins: [TweenMixin], // gives us this.tweenState()

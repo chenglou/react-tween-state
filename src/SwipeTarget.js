@@ -29,8 +29,14 @@ function swipedEvent(velocity) {
   return new SwipedEvent(velocity);
 }
 
-// TODO: should we do it with distance instead?
-var MIN_SWIPE_TIME = 250;
+function isDistanceGreaterThan(v1, v2, d) {
+  // http://jsperf.com/pow-vs-mul
+  var xd = (v2.x - v1.x);
+  var yd = (v2.y - v1.y);
+  return xd * xd + yd * yd > d * d;
+}
+
+var MIN_SWIPE_DISTANCE = 2;
 
 var SwipeTarget = React.createClass({
   getInitialState: function() {
@@ -38,13 +44,12 @@ var SwipeTarget = React.createClass({
       lastTouchPos: null,
       lastTouchVelocity: null,
       lastTouchTime: null,
-      touchStartTime: null,
+      touchStartPos: null
     };
   },
 
   handleTouchStart: function(e) {
     var touch = e.targetTouches[0];
-    var time = Date.now();
 
     if (this.props.onStartGesturing) {
       this.props.onStartGesturing();
@@ -53,8 +58,8 @@ var SwipeTarget = React.createClass({
     this.setState({
       lastTouchPos: vector(touch.screenX, touch.screenY),
       lastTouchVelocity: vector(0, 0),
-      lastTouchTime: time,
-      touchStartTime: time
+      lastTouchTime: Date.now(),
+      touchStartPos: vector(touch.screenX, touch.screenY)
     });
     return false;
   },
@@ -90,7 +95,11 @@ var SwipeTarget = React.createClass({
   },
 
   handleTouchEnd: function(e) {
-    var swiping = Date.now() - this.state.touchStartTime > MIN_SWIPE_TIME;
+    var swiping = isDistanceGreaterThan(
+      this.state.lastTouchPos,
+      this.state.touchStartPos,
+      MIN_SWIPE_DISTANCE
+    );
 
     if (this.props.onStopGesturing) {
       this.props.onStopGesturing(swiping);

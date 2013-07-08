@@ -20,4 +20,9 @@ This is an example of touch gestures and animations on React by building a Faceb
   * **It only targets mobile** for panning (or Chrome with "emulate touch events" enabled). Clicking on the list button still works on desktop browsers however.
   * **It uses a custom build of React** to expose `TapEventPlugin` and `ReactUpdates`. I've included the patch against the core.
 
-## Please fork, and make this better!
+## Future opportunities
+
+  * **Tween queue.** The easiest way to reason about animations is to do an immediate state update, and then queue the tween for execution after all other tweens complete.
+  * **Better easing functions.** Bounce would be nice!
+
+**Please fork, and make this better!**

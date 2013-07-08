@@ -10,6 +10,11 @@ This is an example of touch gestures and animations on React by building a Faceb
   * **Prefer higher quality interactions to higher compatibility.** Right now I'm only testing on an iPhone 5, but it works OK on a Nexus 7.
   * **Application code stays declarative.** React should do all perf work for you (i.e. batching within a single requestAnimationFrame).
 
+## Getting started
+
+  * [Live demo](http://rawgithub.com/petehunt/react-animations/master/index.html)
+  * Start hacking by reading `src/example.js`
+
 ## Gotchas
 
   * **It only targets mobile** or Chrome with "emulate touch events" enabled. So it will look broken in a desktop browser.

@@ -87,6 +87,7 @@ copyProperties(
       if (this.startTime === null) {
         if (this.time === 0) {
           // Special case instant update
+          this.easing(1);
           copyProperties(target, this.dest);
           return;
         }
@@ -186,6 +187,16 @@ copyProperties(
     wait: function(time) {
       this.queue.push(
         new TweenStep({}, time, function(d) { return d; })
+      );
+      return this;
+    },
+    call: function(func) {
+      this.queue.push(
+        new TweenStep({}, 0, function(d) {
+          if (d === 1) {
+            func();
+          }
+        })
       );
       return this;
     },

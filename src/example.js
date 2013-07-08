@@ -2,10 +2,14 @@
  * @jsx React.DOM
  */
 
+// Some basic math we need to ensure the viewport is
+// positioned correctly
 function clamp(n, min, max) {
   return Math.min(Math.max(n, min), max);
 }
 
+// Used to round with a variable midpoint, i.e. we favor
+// opening the menu
 function round(n, min, max, pct) {
   pct = pct || .5;
   if (n > min + (max - min) * pct) {
@@ -15,11 +19,17 @@ function round(n, min, max, pct) {
   }
 }
 
+// Tween constants
 var POS_CLOSED = -150;
 var POS_OPEN = 0;
+var TWEEN_TIME = 200;
 
 var App = React.createClass({
-  mixins: [TweenMixin],
+  mixins: [TweenMixin], // gives us this.tweenState()
+
+  // Set up some trivial animation such that we are
+  // reconciling a child component being animated. Most
+  // views will be less complex!
   componentDidMount: function() {
     setInterval(this.updateTicks, 500);
   },
@@ -27,56 +37,94 @@ var App = React.createClass({
     this.setState({ticks: this.state.ticks + 1});
   },
   getInitialState: function() {
+    // pos is the current x position (menu open or closed)
+    // animating is a boolean that is true when we are
+    // opening or closing the menu. We use it to disable
+    // reconcilation if there are expensive components
+    // in the tree. We use an integer since we want to
+    // use it in the tween system, which only understands
+    // numbers.
     return {pos: POS_CLOSED, animating: 0, ticks: 0};
   },
+  // wrappers around clamp() and round() for use with
+  // this UI
   clampPos: function(desiredPos) {
     return clamp(desiredPos, POS_CLOSED, POS_OPEN);
   },
   roundPos: function(desiredPos) {
     return round(desiredPos, POS_CLOSED, POS_OPEN, .4);
   },
+  // Here comes the fun stuff: gestures! Not really
+  // animation related, but a cool part of the demo.
   handleSwiping: function(data) {
+    // When the user is dragging their finger across the
+    // screen, have the menu track it exactly. Note that
+    // SwipeTarget requires the user to move 2px for it
+    // to count as a real swipe, this is to prevent
+    // confusion with taps. So it takes a frame or two
+    // for the swipe to start. This is by design; if you
+    // don't like it you can change SwipeTarget.
     this.setState({
       pos: this.clampPos(
         this.state.pos + data.offset.x
       )
     });
-    return false;
   },
   handleStartGesturing: function() {
+    // This is fired onTouchStart. We want the browser
+    // focused solely on animation during this time, so
+    // set our animating state flag.
     this.setState({animating: 1});
   },
   handleStopGesturing: function(swiping) {
+    // This is fired onTouchEnd. If the user has not moved
+    // at least 2px, then we don't consider it a swipe. If
+    // the user *has* swiped then the tween will reset
+    // animating; if not swiping we reset it here.
     if (!swiping) {
       this.setState({animating: 0});
     }
   },
   handleSwiped: function(data) {
-    // TODO: look at velocity as part of the ease
-    var desiredPos = this.roundPos(this.state.pos);
-    this.tweenState()
-      .to({pos: desiredPos}, 200, EasingFunctions.easeInOutCubic)
-      .to({animating: 0}, 0); //createjs.Ease.bounceOut);
-    return false;
+    // When the user completes a swipe, round the location
+    // to whether it should be open or closed, and tween
+    // to it.
+    // TODO: look at velocity as part of the ease such
+    // that you can "throw" the menu closed if you swipe
+    // harder. This is easy -- just implement a new ease
+    // function that takes data.velocity.x into account.
+    this.tweenPos(this.roundPos(this.state.pos));
   },
   handleToggle: function() {
-    this.tweenState()
-      .to({animating: 1}, 0)
-      .to({pos: this.state.pos === POS_OPEN ? POS_CLOSED : POS_OPEN}, 200, EasingFunctions.easeInOutCubic)
-      .to({animating: 0}, 0);
-    return false;
+    // Simple: just tween the menu open or closed when the
+    // button is tapped.
+    this.tweenPos(this.state.pos === POS_OPEN ? POS_CLOSED : POS_OPEN);
   },
   handleCloseMenu: function() {
+    // If you tap the content area while the menu is open
+    // it should close.
     if (this.state.pos !== POS_OPEN) {
-      return false;
+      return;
     }
-    this.tweenState()
-      .to({animating: 1}, 0)
-      .to({pos: POS_CLOSED}, 200, EasingFunctions.easeInOutCubic)
+    this.tweenPos(POS_CLOSED);
+  },
+  tweenPos: function(desiredPos) {
+    // A simple wrapper around our tweening behavior. We
+    // want to do a few things: set the animating flag
+    // if it has not been set yet, tween to the right
+    // place in 200ms, and always clear the animating
+    // flag.
+    var tween = this.tweenState();
+    if (!this.state.animating) {
+      tween.to({animating: 1}, 0);
+    }
+    tween
+      .to({pos: desiredPos}, TWEEN_TIME, EasingFunctions.easeInOutCubic)
       .to({animating: 0}, 0);
-    return false;
   },
   render: function() {
+    // Build some simple DOM -- see layout.css for how
+    // it fits together.
     return (
       <Sprite x={this.state.pos} class="App">
         <SwipeTarget
@@ -112,6 +160,15 @@ var App = React.createClass({
   }
 });
 
+// Animation demos are usually simple -- this simulates
+// what happens if you have a really slow component
+// that drops frames. This component will pause the render
+// loop for 100ms which is definitely noticeable. We use
+// the animating flag in the component above along with
+// StaticSprite to mitigate this issue. Try toggling it
+// and looking at how smooth the animation. Force
+// the animating flag to false in the component above
+// to compare.
 var ExpensiveComponent = React.createClass({
   getInitialState: function() {
     return {dropFrames: false};
@@ -121,8 +178,8 @@ var ExpensiveComponent = React.createClass({
   },
   render: function() {
     var start = Date.now();
-    // drop some frames
     if (this.state.dropFrames) {
+      // Pause 100ms-ish
       while (Date.now() - start < 100) {}
     }
     return <p>Expensive component: {this.props.ticks}. <a href="javascript:;" onTouchTap={this.handleToggle}>{this.state.dropFrames ? 'Stop ' : 'Start '} dropping frames</a></p>;

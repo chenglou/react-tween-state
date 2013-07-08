@@ -1,3 +1,22 @@
+// To implement this example I originally used TweenJS. It
+// is easy to use, well-supported and has beautiful easing
+// functions. Unfortunately it was dropping frames, so I
+// rewrote an API-compatible version here that does not
+// drop frames. I hope they stop dropping frames in the
+// future so we can switch back to it again, but I didn't
+// have time to profile it.
+
+// Since someone else will probably build a better one, I
+// didn't document this code too much. Just look at
+// http://www.createjs.com/#!/TweenJS for usage info.
+
+// What's important is that it's clocked on
+// requestAnimationFrame(); see tick() for some notes.
+
+// Go to the end to see the mixin.
+
+// Lifted from https://gist.github.com/gre/1650294
+
 /*
  * Easing Functions - inspired from http://gizma.com/easing/
  * only considering the t value for the range [0, 1] => [0, 1]
@@ -46,14 +65,16 @@ function TweenStep(dest, time, easing) {
   this.time = time;
   this.easing = easing;
   this.startTime = null;
-  this.deltas = {};
-  this.starts = {};
+  this.deltas = null;
+  this.starts = null;
 }
 
 copyProperties(
   TweenStep.prototype, {
     start: function(target, time) {
       this.startTime = time;
+      this.deltas = {};
+      this.starts = {};
       for (var key in this.dest) {
         if (!this.dest.hasOwnProperty(key)) {
           continue;
@@ -84,6 +105,12 @@ var allTweens = [];
 var ticking = false;
 
 function tick() {
+  // TODO: use ReactUpdates to batch everything
+  // into a single reconcile! This is **hugely**
+  // important for performance -- multiple components in
+  // the app can be animating all at once but react will
+  // only execute once saving tons of CPU and keeping
+  // all animations smooth.
   var newTweens = [];
   var time = Date.now();
   for (var i = 0; i < allTweens.length; i++) {
@@ -179,9 +206,13 @@ copyProperties(
 var TweenMixin = {
   tweenState: function(cfg) {
     // NOTE: while the tween is going on, setState() will be a no-op.
+
+    // Copy our current state into a new obj the tween will
+    // be mutating.
     var tweenState = {};
     copyProperties(tweenState, this.state);
-    var t = Tween.get(tweenState); //createjs.Tween.get(tweenState, cfg);
+    var t = Tween.get(tweenState);
+    // Every time the tween updates call setState();
     t.addEventListener('change', this.change);
     return t;
   },

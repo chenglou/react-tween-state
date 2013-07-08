@@ -2,12 +2,16 @@
  * @jsx React.DOM
  */
 
+// Swipe gestures in React!
+
+// Create some utility classes.
 function Vector(x, y) {
   this.x = x;
   this.y = y;
 }
 
-// TODO: we could pool these in the future maybe
+// TODO: we could pool these in the future maybe, so
+// create them with a helper function.
 function vector(x, y) {
   return new Vector(x, y);
 }
@@ -30,6 +34,8 @@ function swipedEvent(velocity) {
   return new SwipedEvent(velocity);
 }
 
+// We can avoid a square root by doing the comparison
+// within the function.
 function isDistanceGreaterThan(v1, v2, d) {
   // http://jsperf.com/pow-vs-mul
   var xd = (v2.x - v1.x);
@@ -37,6 +43,9 @@ function isDistanceGreaterThan(v1, v2, d) {
   return xd * xd + yd * yd > d * d;
 }
 
+// We need to know the difference between a tap and a
+// swipe; we define a swipe by moving at least 2px
+// throughout its lifetime.
 var MIN_SWIPE_DISTANCE = 2;
 
 var SwipeTarget = React.createClass({
@@ -61,9 +70,14 @@ var SwipeTarget = React.createClass({
       lastTouchPos: vector(touch.screenX, touch.screenY),
       lastTouchVelocity: vector(0, 0),
       lastTouchTime: Date.now(),
+      // Create a second vector here because we mutate
+      // the first one to save GC
       touchStartPos: vector(touch.screenX, touch.screenY),
       swiping: false
     });
+
+    // We return false from all touch handlers so the
+    // browser doesn't scroll.
     return false;
   },
 
@@ -74,6 +88,8 @@ var SwipeTarget = React.createClass({
     var offsetX = touch.screenX - this.state.lastTouchPos.x;
     var offsetY = touch.screenY - this.state.lastTouchPos.y;
 
+    // If the swipe has ever moved 2px from the origin, we
+    // are doing a swipe gesture.
     var swiping = this.state.swiping || isDistanceGreaterThan(
       this.state.lastTouchPos,
       this.state.touchStartPos,
@@ -84,11 +100,12 @@ var SwipeTarget = React.createClass({
       this.props.onSwiping(swipingEvent(vector(offsetX, offsetY), timeDelta, swiping));
     }
 
-    // reuse the last obj for less GCs, even though
-    // mutating state is bad form in React.
+    // Reuse the last obj for less GCs, even though
+    // mutating state is bad form in React. This is a
+    // hot path and we know what we're doing.
     var lastTouchVelocity = this.state.lastTouchVelocity;
     lastTouchVelocity.x = offsetX / timeDelta;
-    lastTouchVelocity.y = offsetY /  timeDelta;
+    lastTouchVelocity.y = offsetY / timeDelta;
 
     var lastTouchPos = this.state.lastTouchPos;
     lastTouchPos.x = touch.screenX;
@@ -101,6 +118,7 @@ var SwipeTarget = React.createClass({
       swiping: swiping
     });
 
+    // Again, return false so the browser doesn't get it.
     return false;
   },
 
@@ -109,8 +127,9 @@ var SwipeTarget = React.createClass({
       this.props.onStopGesturing(this.state.swiping);
     }
 
-    // TODO: these velocity calcs could be better? Is there an issue if
-    // you hold for a long time?
+    // TODO: is it possible the velocity has changed since
+    // the last move event? Like if the user swipes, holds,
+    // and then lets go?
     if (this.props.onSwiped && this.state.swiping) {
       this.props.onSwiped(swipedEvent(this.state.lastTouchVelocity));
     }
@@ -118,6 +137,7 @@ var SwipeTarget = React.createClass({
   },
 
   render: function() {
+    // Area of improvement: make it work for mouse events.
     return this.transferPropsTo(
       <div
           onTouchStart={this.handleTouchStart}
@@ -129,6 +149,10 @@ var SwipeTarget = React.createClass({
   }
 });
 
+// Need this to get happy touch events in React. By the way
+// this example uses a custom build of React which injects
+// TapEventPlugin, which is needed if you ever want
+// onTouchTap. It is not included by default in React today
 React.initializeTouchEvents(true);
 
 window.SwipeTarget = SwipeTarget;

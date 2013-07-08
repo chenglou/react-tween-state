@@ -1,3 +1,9 @@
+/*
+  Set up a decent looking UI. We have the whole UI in a
+  position: fixed wrapper which is then tweened left or
+  right to show/hide the menu.
+*/
+
 * {
   box-sizing: border-box;
   margin: 0;

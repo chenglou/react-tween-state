@@ -2,7 +2,7 @@
  * @jsx React.DOM
  */
 
-// pooled obj to save GCs
+// Pooled obj to save GCs
 var EMPTY_STYLE = {};
 
 // Stolen from: http://stackoverflow.com/questions/5661671/detecting-transform-translate3d-support
@@ -17,7 +17,7 @@ function has3d() {
     'transform':'transform'
   };
 
-    // Add it to the body to get the computed style.
+  // Add it to the body to get the computed style.
   document.body.insertBefore(el, null);
 
   for (var t in transforms) {
@@ -34,9 +34,11 @@ function has3d() {
 
 var HAS_3D = has3d();
 
+// Sprite is just a component that can be translated by an
+// x/y vector. Just pass them in as props and Sprite will
+// position itself in the most efficient way possible.
 var Sprite = React.createClass({
   getDefaultProps: function() {
-    // pooled object to save gcs
     return {x: 0, y: 0};
   },
   componentWillMount: function() {
@@ -59,6 +61,7 @@ var Sprite = React.createClass({
         '-moz-transform': translate3d
       };
     } else {
+      // IE fallback
       return {
         position: 'absolute',
         left: this.props.x,
@@ -73,6 +76,14 @@ var Sprite = React.createClass({
   }
 });
 
+// React is quite fast, and often you'll be fine naively
+// moving a Sprite around. But sometimes you may have an
+// expensive component that takes more than 16ms to
+// render, leading to a dropped frame at 60fps. So use
+// this class: pass it a "animating" prop and it will
+// pause reconcilation on all of its children until it
+// becomes true. This will make your animations buttery
+// smooth.
 var StaticSprite = React.createClass({
   shouldComponentUpdate: function(nextProps) {
     return !this.props.animating || !nextProps.animating;

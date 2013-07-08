@@ -29,21 +29,27 @@ function swipedEvent(velocity) {
   return new SwipedEvent(velocity);
 }
 
+// TODO: should we do it with distance instead?
+var MIN_SWIPE_TIME = 250;
+
 var SwipeTarget = React.createClass({
   getInitialState: function() {
     return {
       lastTouchPos: null,
       lastTouchVelocity: null,
       lastTouchTime: null,
+      touchStartTime: null,
     };
   },
 
   handleTouchStart: function(e) {
     var touch = e.targetTouches[0];
+    var time = Date.now();
     this.setState({
       lastTouchPos: vector(touch.screenX, touch.screenY),
       lastTouchVelocity: vector(0, 0),
-      lastTouchTime: Date.now()
+      lastTouchTime: time,
+      touchStartTime: time
     });
     return false;
   },
@@ -81,7 +87,7 @@ var SwipeTarget = React.createClass({
   handleTouchEnd: function(e) {
     // TODO: these velocity calcs could be better? Is there an issue if
     // you hold for a long time?
-    if (this.props.onSwiped) {
+    if (this.props.onSwiped && Date.now() - this.state.touchStartTime > MIN_SWIPE_TIME) {
       this.props.onSwiped(swipedEvent(this.state.lastTouchVelocity));
     }
     return false;

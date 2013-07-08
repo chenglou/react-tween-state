@@ -64,9 +64,15 @@ copyProperties(
     },
     tick: function(target, time) {
       if (this.startTime === null) {
+        if (this.time === 0) {
+          // Special case instant update
+          copyProperties(target, this.dest);
+          return;
+        }
+
         this.start(target, time);
       }
-      var pct = (time - this.startTime) / this.time;
+      var pct = Math.min((time - this.startTime) / this.time, 1.0);
       for (var key in this.deltas) {
         target[key] = this.starts[key] + this.easing(pct) * this.deltas[key];
       }

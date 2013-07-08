@@ -42,16 +42,16 @@ var App = React.createClass({
     // TODO: look at velocity as part of the ease
     var desiredPos = round(this.state.pos, -150, 0, .33);
     this.tweenState()
-      .to({animating: 1}, 1, EasingFunctions.linear)
+      .to({animating: 1}, 0, EasingFunctions.linear)
       .to({pos: desiredPos}, 200, EasingFunctions.easeInOutCubic)
-      .to({animating: 0}, 1, EasingFunctions.linear); //createjs.Ease.bounceOut);
+      .to({animating: 0}, 0, EasingFunctions.linear); //createjs.Ease.bounceOut);
     return false;
   },
   handleOpen: function() {
     this.tweenState()
-      .to({animating: 1}, 1, EasingFunctions.linear)
+      .to({animating: 1}, 0, EasingFunctions.linear)
       .to({pos: this.state.pos === 0 ? -150 : 0}, 200, EasingFunctions.easeInOutCubic)
-      .to({animating: 0}, 1, EasingFunctions.linear);
+      .to({animating: 0}, 0, EasingFunctions.linear);
     return false;
   },
   render: function() {
@@ -92,7 +92,7 @@ var ExpensiveComponent = React.createClass({
   render: function() {
     var start = Date.now();
     // drop some frames
-    while (Date.now() - start < 100) {}
+    //while (Date.now() - start < 100) {}
     return <p>Expensive component: {this.props.ticks}</p>;
   }
 });

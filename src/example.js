@@ -15,6 +15,9 @@ function round(n, min, max, pct) {
   }
 }
 
+var POS_CLOSED = -150;
+var POS_OPEN = 0;
+
 var App = React.createClass({
   mixins: [TweenMixin],
   componentDidMount: function() {
@@ -24,13 +27,13 @@ var App = React.createClass({
     this.setState({ticks: this.state.ticks + 1});
   },
   getInitialState: function() {
-    return {pos: -150, animating: 0, ticks: 0};
+    return {pos: POS_CLOSED, animating: 0, ticks: 0};
   },
   clampPos: function(desiredPos) {
-    return clamp(desiredPos, -150, 0);
+    return clamp(desiredPos, POS_CLOSED, POS_OPEN);
   },
   roundPos: function(desiredPos) {
-    return round(desiredPos, -150, 0, .4);
+    return round(desiredPos, POS_CLOSED, POS_OPEN, .4);
   },
   handleSwiping: function(data) {
     this.setState({
@@ -56,20 +59,20 @@ var App = React.createClass({
       .to({animating: 0}, 0); //createjs.Ease.bounceOut);
     return false;
   },
-  handleOpen: function() {
+  handleToggle: function() {
     this.tweenState()
       .to({animating: 1}, 0)
-      .to({pos: this.state.pos === 0 ? -150 : 0}, 200, EasingFunctions.easeInOutCubic)
+      .to({pos: this.state.pos === POS_OPEN ? POS_CLOSED : POS_OPEN}, 200, EasingFunctions.easeInOutCubic)
       .to({animating: 0}, 0);
     return false;
   },
   handleCloseMenu: function() {
-    if (this.state.pos !== 0) {
+    if (this.state.pos !== POS_OPEN) {
       return false;
     }
     this.tweenState()
       .to({animating: 1}, 0)
-      .to({pos: -150}, 200, EasingFunctions.easeInOutCubic)
+      .to({pos: POS_CLOSED}, 200, EasingFunctions.easeInOutCubic)
       .to({animating: 0}, 0);
     return false;
   },
@@ -91,7 +94,7 @@ var App = React.createClass({
                   href="javascript:;"
                   class="Button"
                   role="button"
-                  onTouchTap={this.handleOpen}>
+                  onTouchTap={this.handleToggle}>
                 <i class="icon-reorder"></i>
               </a>
               Top bar

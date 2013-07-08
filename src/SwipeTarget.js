@@ -45,6 +45,11 @@ var SwipeTarget = React.createClass({
   handleTouchStart: function(e) {
     var touch = e.targetTouches[0];
     var time = Date.now();
+
+    if (this.props.onTouchStart) {
+      this.props.onTouchStart(e);
+    }
+
     this.setState({
       lastTouchPos: vector(touch.screenX, touch.screenY),
       lastTouchVelocity: vector(0, 0),
@@ -60,6 +65,10 @@ var SwipeTarget = React.createClass({
     var timeDelta = time - this.state.lastTouchTime;
     var offsetX = touch.screenX - this.state.lastTouchPos.x;
     var offsetY = touch.screenY - this.state.lastTouchPos.y;
+
+    if (this.props.onTouchMove) {
+      this.props.onTouchMove(e);
+    }
 
     if (this.props.onSwiping) {
       this.props.onSwiping(swipingEvent(vector(offsetX, offsetY), timeDelta));
@@ -85,9 +94,20 @@ var SwipeTarget = React.createClass({
   },
 
   handleTouchEnd: function(e) {
+    var swiping = Date.now() - this.state.touchStartTime > MIN_SWIPE_TIME;
+
+    if (this.props.onTouchEnd) {
+      this.props.onTouchEnd(e);
+    }
+
+    if (this.props.onStopSwiping) {
+      // TODO: better names!
+      this.props.onStopSwiping(swiping);
+    }
+
     // TODO: these velocity calcs could be better? Is there an issue if
     // you hold for a long time?
-    if (this.props.onSwiped && Date.now() - this.state.touchStartTime > MIN_SWIPE_TIME) {
+    if (this.props.onSwiped && swiping) {
       this.props.onSwiped(swipedEvent(this.state.lastTouchVelocity));
     }
     return false;

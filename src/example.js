@@ -33,25 +33,31 @@ var App = React.createClass({
     this.setState({
       pos: this.clampPos(
         this.state.pos + data.offset.x
-      ),
-      animating: 1
+      )
     });
     return false;
+  },
+  handleTouchStart: function() {
+    this.setState({animating: 1});
+  },
+  handleStopSwiping: function(swiping) {
+    if (!swiping) {
+      this.setState({animating: 0});
+    }
   },
   handleSwiped: function(data) {
     // TODO: look at velocity as part of the ease
     var desiredPos = round(this.state.pos, -150, 0, .33);
     this.tweenState()
-      .to({animating: 1}, 0, EasingFunctions.linear)
       .to({pos: desiredPos}, 200, EasingFunctions.easeInOutCubic)
-      .to({animating: 0}, 0, EasingFunctions.linear); //createjs.Ease.bounceOut);
+      .to({animating: 0}, 0); //createjs.Ease.bounceOut);
     return false;
   },
   handleOpen: function() {
     this.tweenState()
-      .to({animating: 1}, 0, EasingFunctions.linear)
+      .to({animating: 1}, 0)
       .to({pos: this.state.pos === 0 ? -150 : 0}, 200, EasingFunctions.easeInOutCubic)
-      .to({animating: 0}, 0, EasingFunctions.linear);
+      .to({animating: 0}, 0);
     return false;
   },
   render: function() {
@@ -59,6 +65,8 @@ var App = React.createClass({
       <Sprite x={this.state.pos} class="App">
         <SwipeTarget
             class="SwipeTarget"
+            onTouchStart={this.handleTouchStart}
+            onStopSwiping={this.handleStopSwiping}
             onSwiping={this.handleSwiping}
             onSwiped={this.handleSwiped}>
           <div class="Menu">
@@ -92,7 +100,7 @@ var ExpensiveComponent = React.createClass({
   render: function() {
     var start = Date.now();
     // drop some frames
-    //while (Date.now() - start < 100) {}
+    while (Date.now() - start < 100) {}
     return <p>Expensive component: {this.props.ticks}</p>;
   }
 });

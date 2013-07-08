@@ -45,7 +45,7 @@ var App = React.createClass({
   },
   handleStopGesturing: function(swiping) {
     if (!swiping) {
-      this.setState({animating: 0, pos: this.roundPos(this.state.pos)});
+      this.setState({animating: 0});
     }
   },
   handleSwiped: function(data) {

@@ -2,6 +2,33 @@
  * @jsx React.DOM
  */
 
+function Vector(x, y) {
+  this.x = x;
+  this.y = y;
+}
+
+// TODO: we could pool these in the future maybe
+function vector(x, y) {
+  return new Vector(x, y);
+}
+
+function SwipingEvent(offset, time) {
+  this.offset = offset;
+  this.time = time;
+}
+
+function swipingEvent(offset, time) {
+  return new SwipingEvent(offset, time);
+}
+
+function SwipedEvent(velocity) {
+  this.velocity = velocity;
+}
+
+function swipedEvent(velocity) {
+  return new SwipedEvent(velocity);
+}
+
 var SwipeTarget = React.createClass({
   getInitialState: function() {
     return {
@@ -14,14 +41,8 @@ var SwipeTarget = React.createClass({
   handleTouchStart: function(e) {
     var touch = e.targetTouches[0];
     this.setState({
-      lastTouchPos: {
-        x: touch.screenX,
-        y: touch.screenY
-      },
-      lastTouchVelocity: {
-        x: 0,
-        y: 0
-      },
+      lastTouchPos: vector(touch.screenX, touch.screenY),
+      lastTouchVelocity: vector(0, 0),
       lastTouchTime: Date.now()
     });
     return false;
@@ -34,14 +55,8 @@ var SwipeTarget = React.createClass({
     var offsetX = touch.screenX - this.state.lastTouchPos.x;
     var offsetY = touch.screenY - this.state.lastTouchPos.y;
 
-    if (this.props.onSwipe) {
-      this.props.onSwipe({
-        offset: {
-          x: offsetX,
-          y: offsetY
-        },
-        time: timeDelta
-      });
+    if (this.props.onSwiping) {
+      this.props.onSwiping(swipingEvent(vector(offsetX, offsetY), timeDelta));
     }
 
     // reuse the last obj for less GCs, even though
@@ -64,14 +79,12 @@ var SwipeTarget = React.createClass({
   },
 
   handleTouchEnd: function(e) {
-    if (this.props.onSwipeEnd) {
-      this.props.onSwipe({
-        vector: {
-          x: (touch.screenX - this.state.lastTouchX)
-        },
-        time: Date.now() - this.state.lastTouchTime
-      });
+    // TODO: these velocity calcs could be better? Is there an issue if
+    // you hold for a long time?
+    if (this.props.onSwiped) {
+      this.props.onSwiped(swipedEvent(this.state.lastTouchVelocity));
     }
+    return false;
   },
 
   render: function() {

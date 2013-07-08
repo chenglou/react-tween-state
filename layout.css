@@ -48,12 +48,21 @@ body {
   bottom: 0;
 }
 
+.SwipeTarget {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
 .Button {
   display: block;
   color: white;
   cursor: pointer;
   text-decoration: none;
   left: 0;
-  margin-left: 25px;
+  padding-left: 25px;
+  padding-right: 25px;
   position: absolute;
 }

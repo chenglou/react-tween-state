@@ -53,7 +53,7 @@ var Sprite = React.createClass({
     if (!this.props.x && !this.props.y && !this.everWas3d) {
       return EMPTY_STYLE;
     }
-    if (HAS_3D) {
+    if (HAS_3D && !this.props.no3d) {
       this.everWas3d = true;
       var translate3d = 'translate3d(' + this.props.x + 'px, ' + this.props.y + 'px, 0)';
       return {

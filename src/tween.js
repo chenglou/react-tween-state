@@ -105,12 +105,6 @@ var allTweens = [];
 var ticking = false;
 
 function tick() {
-  // TODO: use ReactUpdates to batch everything
-  // into a single reconcile! This is **hugely**
-  // important for performance -- multiple components in
-  // the app can be animating all at once but react will
-  // only execute once saving tons of CPU and keeping
-  // all animations smooth.
   var newTweens = [];
   var time = Date.now();
   for (var i = 0; i < allTweens.length; i++) {

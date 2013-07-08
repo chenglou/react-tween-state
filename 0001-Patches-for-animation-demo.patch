@@ -1,0 +1,77 @@
+From 2d6a07caece2dfacd00cc1e7ba04f4d3472d919c Mon Sep 17 00:00:00 2001
+From: petehunt <floydophone@gmail.com>
+Date: Mon, 8 Jul 2013 04:07:48 -0700
+Subject: [PATCH] Patches for animation demo
+
+---
+ src/core/React.js                   |    3 +++
+ src/core/ReactCompositeComponent.js |    2 +-
+ src/core/ReactDefaultInjection.js   |   10 +++++++++-
+ 3 files changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/src/core/React.js b/src/core/React.js
+index 7bdb3b3..fc837d7 100644
+--- a/src/core/React.js
++++ b/src/core/React.js
+@@ -24,15 +24,18 @@ var ReactDOM = require('ReactDOM');
+ var ReactMount = require('ReactMount');
+ var ReactProps = require('ReactProps');
+ var ReactServerRendering = require('ReactServerRendering');
++var ReactUpdates = require('ReactUpdates');
+ 
+ var ReactDefaultInjection = require('ReactDefaultInjection');
+ 
+ ReactDefaultInjection.inject();
+ 
+ var React = {
++  Updates: ReactUpdates,
+   DOM: ReactDOM,
+   Props: ReactProps,
+   initializeTouchEvents: function(shouldUseTouch) {
++    ReactDefaultInjection.injectTouch();
+     ReactMount.useTouchEvents = shouldUseTouch;
+   },
+   autoBind: ReactCompositeComponent.autoBind,
+diff --git a/src/core/ReactCompositeComponent.js b/src/core/ReactCompositeComponent.js
+index 1f8e026..7ecf79a 100644
+--- a/src/core/ReactCompositeComponent.js
++++ b/src/core/ReactCompositeComponent.js
+@@ -524,7 +524,7 @@ var ReactCompositeComponentMixin = {
+   unmountComponent: function() {
+     this._compositeLifeCycleState = CompositeLifeCycle.UNMOUNTING;
+     if (this.componentWillUnmount) {
+-      this.componentWillUnmount();
++      this.componentWillUnmount(this.getDOMNode());
+     }
+     this._compositeLifeCycleState = null;
+ 
+diff --git a/src/core/ReactDefaultInjection.js b/src/core/ReactDefaultInjection.js
+index 8dd413c..841a946 100644
+--- a/src/core/ReactDefaultInjection.js
++++ b/src/core/ReactDefaultInjection.js
+@@ -32,6 +32,7 @@ var ChangeEventPlugin = require('ChangeEventPlugin');
+ var EventPluginHub = require('EventPluginHub');
+ var ReactInstanceHandles = require('ReactInstanceHandles');
+ var SimpleEventPlugin = require('SimpleEventPlugin');
++var TapEventPlugin = require('TapEventPlugin');
+ 
+ function inject() {
+   /**
+@@ -59,6 +60,13 @@ function inject() {
+   DOMProperty.injection.injectDOMPropertyConfig(DefaultDOMPropertyConfig);
+ }
+ 
++function injectTouch() {
++  EventPluginHub.injection.injectEventPluginsByName({
++    'TapEventPlugin': TapEventPlugin
++  });
++}
++
+ module.exports = {
+-  inject: inject
++  inject: inject,
++  injectTouch: injectTouch
+ };
+-- 
+1.7.4.4
+

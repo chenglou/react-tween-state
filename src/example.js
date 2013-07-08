@@ -18,7 +18,7 @@ function round(n, min, max, pct) {
 var App = React.createClass({
   mixins: [TweenMixin],
   componentDidMount: function() {
-    setInterval(this.updateTicks, 1000);
+    setInterval(this.updateTicks, 500);
   },
   updateTicks: function() {
     this.setState({ticks: this.state.ticks + 1});

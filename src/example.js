@@ -41,10 +41,8 @@ var App = React.createClass({
     // animating is a boolean that is true when we are
     // opening or closing the menu. We use it to disable
     // reconcilation if there are expensive components
-    // in the tree. We use an integer since we want to
-    // use it in the tween system, which only understands
-    // numbers.
-    return {pos: POS_CLOSED, animating: 0, ticks: 0};
+    // in the tree.
+    return {pos: POS_CLOSED, animating: false, ticks: 0};
   },
   // wrappers around clamp() and round() for use with
   // this UI
@@ -74,7 +72,7 @@ var App = React.createClass({
     // This is fired onTouchStart. We want the browser
     // focused solely on animation during this time, so
     // set our animating state flag.
-    this.setState({animating: 1});
+    this.setState({animating: true});
   },
   handleStopGesturing: function(swiping) {
     // This is fired onTouchEnd. If the user has not moved
@@ -82,7 +80,7 @@ var App = React.createClass({
     // the user *has* swiped then the tween will reset
     // animating; if not swiping we reset it here.
     if (!swiping) {
-      this.setState({animating: 0});
+      this.setState({animating: false});
     }
   },
   handleSwiped: function(data) {
@@ -116,11 +114,11 @@ var App = React.createClass({
     // flag.
     var tween = this.tweenState({override: true});
     if (!this.state.animating) {
-      tween.to({animating: 1}, 0);
+      tween.to({animating: true}, 0);
     }
     tween
       .to({pos: desiredPos}, TWEEN_TIME, EasingFunctions.easeInOutCubic)
-      .to({animating: 0}, 0);
+      .to({animating: false}, 0);
   },
   render: function() {
     // Build some simple DOM -- see layout.css for how

@@ -87,7 +87,9 @@ copyProperties(
       if (this.startTime === null) {
         if (this.time === 0) {
           // Special case instant update
-          this.easing(1);
+          if (this.easing) {
+            this.easing(1);
+          }
           copyProperties(target, this.dest);
           return;
         }

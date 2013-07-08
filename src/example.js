@@ -30,7 +30,7 @@ var App = React.createClass({
     return clamp(desiredPos, -150, 0);
   },
   roundPos: function(desiredPos) {
-    return round(desiredPos, -150, 0, .33);
+    return round(desiredPos, -150, 0, .4);
   },
   handleSwiping: function(data) {
     this.setState({

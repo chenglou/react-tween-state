@@ -24,5 +24,8 @@ This is an example of touch gestures and animations on React by building a Faceb
 
   * **Tween queue.** The easiest way to reason about animations is to do an immediate state update, and then queue the tween for execution after all other tweens complete.
   * **Better easing functions.** Bounce would be nice!
+  * **Better swipe gesture velocity calc.** Right now it's kind of hacky
+  * **Easing functions that take into account velocity**
+  * **Syntactic sugar?**
 
 **Please fork, and make this better!**

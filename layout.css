@@ -14,7 +14,7 @@ body {
   font-family: 'helvetica neue';
   font-weight: lighter;
   color: #666;
-  background: #eee;
+  background: #666;
 }
 
 .Menu {
@@ -37,6 +37,7 @@ body {
 }
 
 .Content {
+  background: #eee;
   position: absolute;
   left: 150px;
   right: 0;

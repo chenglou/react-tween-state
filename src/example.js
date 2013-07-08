@@ -117,7 +117,7 @@ var App = React.createClass({
       tween.to({animating: true}, 0);
     }
     tween
-      .to({pos: desiredPos}, TWEEN_TIME, EasingFunctions.easeInOutCubic)
+      .to({pos: desiredPos}, TWEEN_TIME, EasingFunctions.easeOutBack) //easeInOutBounce)
       .to({animating: false}, 0);
   },
   render: function() {

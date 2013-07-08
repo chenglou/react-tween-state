@@ -37,10 +37,10 @@ var App = React.createClass({
     });
     return false;
   },
-  handleTouchStart: function() {
+  handleStartGesturing: function() {
     this.setState({animating: 1});
   },
-  handleStopSwiping: function(swiping) {
+  handleStopGesturing: function(swiping) {
     if (!swiping) {
       this.setState({animating: 0});
     }
@@ -65,8 +65,8 @@ var App = React.createClass({
       <Sprite x={this.state.pos} class="App">
         <SwipeTarget
             class="SwipeTarget"
-            onTouchStart={this.handleTouchStart}
-            onStopSwiping={this.handleStopSwiping}
+            onStartGesturing={this.handleStartGesturing}
+            onStopGesturing={this.handleStopGesturing}
             onSwiping={this.handleSwiping}
             onSwiped={this.handleSwiped}>
           <div class="Menu">

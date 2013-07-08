@@ -46,8 +46,8 @@ var SwipeTarget = React.createClass({
     var touch = e.targetTouches[0];
     var time = Date.now();
 
-    if (this.props.onTouchStart) {
-      this.props.onTouchStart(e);
+    if (this.props.onStartGesturing) {
+      this.props.onStartGesturing();
     }
 
     this.setState({
@@ -65,10 +65,6 @@ var SwipeTarget = React.createClass({
     var timeDelta = time - this.state.lastTouchTime;
     var offsetX = touch.screenX - this.state.lastTouchPos.x;
     var offsetY = touch.screenY - this.state.lastTouchPos.y;
-
-    if (this.props.onTouchMove) {
-      this.props.onTouchMove(e);
-    }
 
     if (this.props.onSwiping) {
       this.props.onSwiping(swipingEvent(vector(offsetX, offsetY), timeDelta));
@@ -96,13 +92,8 @@ var SwipeTarget = React.createClass({
   handleTouchEnd: function(e) {
     var swiping = Date.now() - this.state.touchStartTime > MIN_SWIPE_TIME;
 
-    if (this.props.onTouchEnd) {
-      this.props.onTouchEnd(e);
-    }
-
-    if (this.props.onStopSwiping) {
-      // TODO: better names!
-      this.props.onStopSwiping(swiping);
+    if (this.props.onStopGesturing) {
+      this.props.onStopGesturing(swiping);
     }
 
     // TODO: these velocity calcs could be better? Is there an issue if

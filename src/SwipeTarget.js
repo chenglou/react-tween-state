@@ -12,9 +12,10 @@ function vector(x, y) {
   return new Vector(x, y);
 }
 
-function SwipingEvent(offset, time) {
+function SwipingEvent(offset, time, swiped) {
   this.offset = offset;
   this.time = time;
+  this.swiped = swiped;
 }
 
 function swipingEvent(offset, time) {
@@ -45,7 +46,7 @@ var SwipeTarget = React.createClass({
       lastTouchVelocity: null,
       lastTouchTime: null,
       touchStartPos: null,
-      swiping: false
+      swiped: false
     };
   },
 
@@ -61,7 +62,7 @@ var SwipeTarget = React.createClass({
       lastTouchVelocity: vector(0, 0),
       lastTouchTime: Date.now(),
       touchStartPos: vector(touch.screenX, touch.screenY),
-      swiping: false
+      swiped: false
     });
     return false;
   },
@@ -73,14 +74,14 @@ var SwipeTarget = React.createClass({
     var offsetX = touch.screenX - this.state.lastTouchPos.x;
     var offsetY = touch.screenY - this.state.lastTouchPos.y;
 
-    var swiping = this.state.swiping || isDistanceGreaterThan(
+    var swiped = this.state.swiped || isDistanceGreaterThan(
       this.state.lastTouchPos,
       this.state.touchStartPos,
       MIN_SWIPE_DISTANCE
     );
 
-    if (this.props.onSwiping && swiping) {
-      this.props.onSwiping(swipingEvent(vector(offsetX, offsetY), timeDelta));
+    if (this.props.onSwiping) {
+      this.props.onSwiping(swipingEvent(vector(offsetX, offsetY), timeDelta, swiped));
     }
 
     // reuse the last obj for less GCs, even though
@@ -97,7 +98,7 @@ var SwipeTarget = React.createClass({
       lastTouchPos: lastTouchPos,
       lastTouchVelocity: lastTouchVelocity,
       lastTouchTime: time,
-      swiping: swiping
+      swiped: swiped
     });
 
     return false;
@@ -105,12 +106,12 @@ var SwipeTarget = React.createClass({
 
   handleTouchEnd: function(e) {
     if (this.props.onStopGesturing) {
-      this.props.onStopGesturing(this.state.swiping);
+      this.props.onStopGesturing(this.state.swiped);
     }
 
     // TODO: these velocity calcs could be better? Is there an issue if
     // you hold for a long time?
-    if (this.props.onSwiped && this.state.swiping) {
+    if (this.props.onSwiped && this.state.swiped) {
       this.props.onSwiped(swipedEvent(this.state.lastTouchVelocity));
     }
     return false;

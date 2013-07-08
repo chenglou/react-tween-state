@@ -63,6 +63,16 @@ var App = React.createClass({
       .to({animating: 0}, 0);
     return false;
   },
+  handleCloseMenu: function() {
+    if (this.state.pos !== 0) {
+      return false;
+    }
+    this.tweenState()
+      .to({animating: 1}, 0)
+      .to({pos: -150}, 200, EasingFunctions.easeInOutCubic)
+      .to({animating: 0}, 0);
+    return false;
+  },
   render: function() {
     return (
       <Sprite x={this.state.pos} class="App">
@@ -75,7 +85,7 @@ var App = React.createClass({
           <div class="Menu">
             Menu
           </div>
-          <div class="Content">
+          <div class="Content" onTouchTap={this.handleCloseMenu}>
             <div class="TopBar">
               <a
                   href="javascript:;"

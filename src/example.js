@@ -114,7 +114,7 @@ var App = React.createClass({
     // if it has not been set yet, tween to the right
     // place in 200ms, and always clear the animating
     // flag.
-    var tween = this.tweenState();
+    var tween = this.tweenState({override: true});
     if (!this.state.animating) {
       tween.to({animating: 1}, 0);
     }

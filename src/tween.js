@@ -105,6 +105,7 @@ var allTweens = [];
 var ticking = false;
 
 function tick() {
+  // TODO: we could pool newTweens to save gc
   var newTweens = [];
   var time = Date.now();
   for (var i = 0; i < allTweens.length; i++) {
@@ -112,6 +113,8 @@ function tick() {
     if (!tween.isDone()) {
       tween.tick(time)
       newTweens.push(tween);
+    } else {
+      tween.cleanup();
     }
   }
   allTweens = newTweens;
@@ -130,18 +133,31 @@ function queueTick() {
   requestAnimationFrame(tick);
 }
 
-function Tween(target) {
+function Tween(target, cfg) {
   this.target = target;
   this.queue = [];
   this.queuePos = 0;
   this.lastStepStartTime = null;
+
+  if (cfg.override && this.target.__tween) {
+    Tween.removeTweens(this.target);
+  }
+  this.target.__tween = this;
+
   allTweens.push(this);
 
   queueTick();
 }
 
-Tween.get = function(target) {
-  return new Tween(target);
+Tween.get = function(target, cfg) {
+  return new Tween(target, cfg);
+};
+
+Tween.removeTweens = function(target) {
+  if (target.__tween) {
+    target.__tween.cancel();
+    target.__tween.cleanup();
+  }
 };
 
 // To maintain API compatibility with TweenJS we need
@@ -156,6 +172,12 @@ copyProperties(
       if (event === 'change') {
         this.onChange = func;
       }
+    },
+    cancel: function() {
+      this.queue.length = 0;
+    },
+    cleanup: function() {
+      this.target.__tween = null;
     },
     to: function(dest, time, easing) {
       this.queue.push(new TweenStep(dest, time, easing));
@@ -199,13 +221,7 @@ copyProperties(
 
 var TweenMixin = {
   tweenState: function(cfg) {
-    // NOTE: while the tween is going on, setState() will be a no-op.
-
-    // Copy our current state into a new obj the tween will
-    // be mutating.
-    var tweenState = {};
-    copyProperties(tweenState, this.state);
-    var t = Tween.get(tweenState);
+    var t = Tween.get(this.state, cfg);
     // Every time the tween updates call setState();
     t.addEventListener('change', this.change);
     return t;

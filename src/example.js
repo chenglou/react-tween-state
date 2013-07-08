@@ -29,6 +29,9 @@ var App = React.createClass({
   clampPos: function(desiredPos) {
     return clamp(desiredPos, -150, 0);
   },
+  roundPos: function(desiredPos) {
+    return round(desiredPos, -150, 0, .33);
+  },
   handleSwiping: function(data) {
     this.setState({
       pos: this.clampPos(
@@ -42,12 +45,12 @@ var App = React.createClass({
   },
   handleStopGesturing: function(swiping) {
     if (!swiping) {
-      this.setState({animating: 0});
+      this.setState({animating: 0, pos: this.roundPos(this.state.pos)});
     }
   },
   handleSwiped: function(data) {
     // TODO: look at velocity as part of the ease
-    var desiredPos = round(this.state.pos, -150, 0, .33);
+    var desiredPos = this.roundPos(this.state.pos);
     this.tweenState()
       .to({pos: desiredPos}, 200, EasingFunctions.easeInOutCubic)
       .to({animating: 0}, 0); //createjs.Ease.bounceOut);

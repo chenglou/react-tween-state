@@ -182,7 +182,7 @@ var ExpensiveComponent = React.createClass({
       // Pause 100ms-ish
       while (Date.now() - start < 100) {}
     }
-    return <p>Expensive component: {this.props.ticks}. <a href="javascript:;" onTouchTap={this.handleToggle}>{this.state.dropFrames ? 'Stop ' : 'Start '} dropping frames</a></p>;
+    return <p>Expensive component: <strong>{this.props.ticks}</strong>. <a href="javascript:;" onTouchTap={this.handleToggle}>{this.state.dropFrames ? 'Stop ' : 'Start '} dropping frames</a></p>;
   }
 });
 

@@ -1,0 +1,104 @@
+/**
+ * @jsx React.DOM
+ */
+
+function Vector(x, y) {
+  this.x = x;
+  this.y = y;
+}
+
+// TODO: we could pool these in the future maybe
+function vector(x, y) {
+  return new Vector(x, y);
+}
+
+function SwipingEvent(offset, time) {
+  this.offset = offset;
+  this.time = time;
+}
+
+function swipingEvent(offset, time) {
+  return new SwipingEvent(offset, time);
+}
+
+function SwipedEvent(velocity) {
+  this.velocity = velocity;
+}
+
+function swipedEvent(velocity) {
+  return new SwipedEvent(velocity);
+}
+
+var SwipeTarget = React.createClass({
+  getInitialState: function() {
+    return {
+      lastTouchPos: null,
+      lastTouchVelocity: null,
+      lastTouchTime: null,
+    };
+  },
+
+  handleTouchStart: function(e) {
+    var touch = e.targetTouches[0];
+    this.setState({
+      lastTouchPos: vector(touch.screenX, touch.screenY),
+      lastTouchVelocity: vector(0, 0),
+      lastTouchTime: Date.now()
+    });
+    return false;
+  },
+
+  handleTouchMove: function(e) {
+    var touch = e.targetTouches[0];
+    var time = Date.now();
+    var timeDelta = time - this.state.lastTouchTime;
+    var offsetX = touch.screenX - this.state.lastTouchPos.x;
+    var offsetY = touch.screenY - this.state.lastTouchPos.y;
+
+    if (this.props.onSwiping) {
+      this.props.onSwiping(swipingEvent(vector(offsetX, offsetY), timeDelta));
+    }
+
+    // reuse the last obj for less GCs, even though
+    // mutating state is bad form in React.
+    var lastTouchVelocity = this.state.lastTouchVelocity;
+    lastTouchVelocity.x = offsetX / timeDelta;
+    lastTouchVelocity.y = offsetY /  timeDelta;
+
+    var lastTouchPos = this.state.lastTouchPos;
+    lastTouchPos.x = touch.screenX;
+    lastTouchPos.y = touch.screenY;
+
+    this.setState({
+      lastTouchPos: lastTouchPos,
+      lastTouchVelocity: lastTouchVelocity,
+      lastTouchTime: time
+    });
+
+    return false;
+  },
+
+  handleTouchEnd: function(e) {
+    // TODO: these velocity calcs could be better? Is there an issue if
+    // you hold for a long time?
+    if (this.props.onSwiped) {
+      this.props.onSwiped(swipedEvent(this.state.lastTouchVelocity));
+    }
+    return false;
+  },
+
+  render: function() {
+    return this.transferPropsTo(
+      <div
+          onTouchStart={this.handleTouchStart}
+          onTouchEnd={this.handleTouchEnd}
+          onTouchMove={this.handleTouchMove}>
+        {this.props.children}
+      </div>
+    );
+  }
+});
+
+React.initializeTouchEvents(true);
+
+window.SwipeTarget = SwipeTarget;

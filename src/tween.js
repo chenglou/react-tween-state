@@ -171,7 +171,8 @@ copyProperties(
 );
 
 var TweenMixin = {
-  tween: function(cfg) {
+  tweenState: function(cfg) {
+    // NOTE: while the tween is going on, setState() will be a no-op.
     var tweenState = {};
     copyProperties(tweenState, this.state);
     var t = Tween.get(tweenState); //createjs.Tween.get(tweenState, cfg);

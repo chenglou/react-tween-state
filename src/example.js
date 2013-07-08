@@ -97,11 +97,19 @@ var App = React.createClass({
 });
 
 var ExpensiveComponent = React.createClass({
+  getInitialState: function() {
+    return {dropFrames: false};
+  },
+  handleToggle: function() {
+    this.setState({dropFrames: !this.state.dropFrames});
+  },
   render: function() {
     var start = Date.now();
     // drop some frames
-    while (Date.now() - start < 100) {}
-    return <p>Expensive component: {this.props.ticks}</p>;
+    if (this.state.dropFrames) {
+      while (Date.now() - start < 100) {}
+    }
+    return <p>Expensive component: {this.props.ticks}. <a href="javascript:;" onTouchTap={this.handleToggle}>{this.state.dropFrames ? 'Stop ' : 'Start '} dropping frames</a></p>;
   }
 });
 

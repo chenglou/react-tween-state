@@ -7,7 +7,7 @@ This is an example of touch gestures and animations on React by building a Faceb
   * **Mobile first.** It's where the growth is, and where the web performs the worst.
   * **JavaScript only.** To get native-quality interactions, you need ultra-fine-grained control that CSS animations don't give you.
   * **60 frames per second.** No exceptions
-  * **Prefer higher quality interactions to higher compatibility.** Tested on iPhone 5 and 4, iPad 3, iOS 6. Seemed to work OK on a Nexus 7 and Nexus 4.
+  * **Prefer higher quality interactions to higher compatibility.** Tested on iPhone 5 and 4, iPad 3, iOS 6, BB Z10. Seemed to work OK on a Nexus 7 and Nexus 4.
   * **Application code stays declarative.** React should do all perf work for you (i.e. batching within a single requestAnimationFrame).
 
 ## Getting started

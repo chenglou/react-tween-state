@@ -5,11 +5,19 @@
 // they will coalesce into a single reconcile.
 var _requestAnimationFrame = window.requestAnimationFrame;
 
+// Completely take over the ReactUpdates system.
+
+var batchedUpdates = React.Updates.batchedUpdates;
+
+React.Updates.batchedUpdates = function(func) {
+  func();
+};
+
 window.requestAnimationFrame = function(func) {
   return _requestAnimationFrame(function() {
     // This is the magic that does it. Note: this was
     // exported in my custom build of React; it is not
     // available in the prebuilt versions yet.
-    React.Updates.batchedUpdates(func);
+    batchedUpdates(func);
   });
 };

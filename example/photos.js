@@ -65,7 +65,7 @@ function renderSamplePhotos(n) {
 
 SAMPLE_PHOTOS = renderSamplePhotos(5);
 
-var TWEEN_TIME = 275;
+var TWEEN_TIME = 200;
 
 // Some basic math we need to ensure the viewport is
 // positioned correctly

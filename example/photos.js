@@ -19,22 +19,53 @@ function round(n, min, max, pct) {
   }
 }
 
-var EmptyPhoto = React.createClass({
+// Lorempixel sends nocache headers so when we add/remove elements they are not cached.
+// NOTE: this is maybe a bad idea to keep the DOM node in memory, but it's good to keep
+// the image in cache. It's just a workaround for lorempixel's no cache -- don't take
+// this as a best practice since it wastes memory!
+var imgElementCache = {};
+
+var LoremPixelCachedImage = React.createClass({
   render: function() {
-    return <div class="Photo" style={{width: this.props.width, height: this.props.height}} />;
+    return <div />;
+  },
+  update: function() {
+    var img = imgElementCache[this.props.src];
+    if (!img) {
+      img = imgElementCache[this.props.src] = document.createElement('img');
+      img.src = this.props.src;
+      img.setAttribute('width', this.props.width);
+      img.setAttribute('height', this.props.height);
+    }
+    var node = this.getDOMNode();
+    if (node.firstChild) {
+      node.removeChild(node.firstChild);
+    }
+    node.appendChild(img);
+  },
+  componentDidMount: function() {
+    this.update();
+  },
+  componentDidUpdate: function() {
+    this.update();
+  }
+});
+
+var PhotoContainer = React.createClass({
+  render: function() {
+    return (
+      <div class="Photo" style={{width: this.props.width, height: this.props.height}}>
+        {this.props.children}
+      </div>
+    );
   }
 });
 
 var Photo = React.createClass({
   render: function() {
     return (
-      <div
-        class="Photo"
-        style={{
-          width: this.props.width,
-          height: this.props.height,
-          backgroundImage: 'url(' + this.props.src + ')'
-        }}>
+      <PhotoContainer width={this.props.width} height={this.props.height}>
+        <LoremPixelCachedImage src={this.props.src} width="100%" height="100%" />
         <div class="PhotoInfo">
           <div class="PhotoText">
             <div class="PhotoCaption">{this.props.caption}</div>
@@ -44,7 +75,7 @@ var Photo = React.createClass({
             {this.props.width}x{this.props.height}
           </div>
         </div>
-      </div>
+      </PhotoContainer>
     );
   }
 });
@@ -100,10 +131,10 @@ var App = React.createClass({
     return {pos: -1 * SAMPLE_WIDTH, index: 0, animating: false, photos: this.getPhotos(0)};
   },
   getPhotos: function(index) {
-    var photos = [];
-    photos.push(SAMPLE_PHOTOS[index - 1] || <EmptyPhoto width={SAMPLE_WIDTH} height={SAMPLE_HEIGHT} />);
-    photos.push(SAMPLE_PHOTOS[index]);
-    photos.push(SAMPLE_PHOTOS[index + 1] || <EmptyPhoto width={SAMPLE_WIDTH} height={SAMPLE_HEIGHT} />);
+    var photos = {};
+    photos['photo' + (index - 1)] = SAMPLE_PHOTOS[index - 1] || <PhotoContainer width={SAMPLE_WIDTH} height={SAMPLE_HEIGHT} />;
+    photos['photo' + index] = SAMPLE_PHOTOS[index];
+    photos['photo' + (index + 1)] = SAMPLE_PHOTOS[index + 1] || <PhotoContainer width={SAMPLE_WIDTH} height={SAMPLE_HEIGHT} />;
     return photos
   },
   updateIndex: function() {

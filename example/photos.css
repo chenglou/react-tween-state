@@ -1,0 +1,89 @@
+/*
+  Set up a decent looking UI. We have the whole UI in a
+  position: fixed wrapper which is then tweened left or
+  right to show/hide the menu.
+*/
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'helvetica neue';
+  font-weight: lighter;
+  color: #666;
+  background: #666;
+}
+
+.Viewport {
+  /* TODO: position fixed */
+  height: 320px;
+  overflow: hidden;
+  position: relative;
+  width: 240px;
+}
+
+.App {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  white-space: nowrap;
+}
+
+.Photo {
+  display: inline-block;
+  position: relative;
+}
+
+.PhotoInfo {
+  background: rgba(0, 0, 0, 0.5);
+  bottom: 0;
+  color: white;
+  font-size: 12px;
+  height: 40px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  -webkit-user-select: none;
+}
+
+.PhotoText,
+.PhotoDimensions {
+  bottom: 0;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.PhotoDimensions {
+  color: #999;
+  line-height: 40px; /* sync with height of PhotoInfo */
+  text-align: right;
+  vertical-align: bottom;
+}
+
+.PhotoDomain {
+  font-size: 10px;
+}
+
+.PhotoCaption,
+.PhotoDimensions,
+.PhotoDomain {
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.PhotoCaption,
+.PhotoDimensions {
+  padding-top: 5px;
+}
+
+.PhotoDomain,
+.PhotoDimensions {
+  padding-bottom: 5px;
+}

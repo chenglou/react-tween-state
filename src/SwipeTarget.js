@@ -108,6 +108,7 @@ var SwipeTarget = React.createClass({
     lastTouchVelocity.y = offsetY / timeDelta;
 
     var lastTouchPos = this.state.lastTouchPos;
+    // TODO: I think these numbers are incorrect on Android
     lastTouchPos.x = touch.screenX;
     lastTouchPos.y = touch.screenY;
 

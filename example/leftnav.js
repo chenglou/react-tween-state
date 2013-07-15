@@ -121,7 +121,7 @@ var App = React.createClass({
       .to({animating: false}, 0);
   },
   render: function() {
-    // Build some simple DOM -- see layout.css for how
+    // Build some simple DOM -- see leftnav.css for how
     // it fits together.
     return (
       <Sprite x={this.state.pos} class="App">

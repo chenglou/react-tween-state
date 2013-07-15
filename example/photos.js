@@ -19,6 +19,12 @@ function round(n, min, max, pct) {
   }
 }
 
+var EmptyPhoto = React.createClass({
+  render: function() {
+    return <div class="Photo" style={{width: this.props.width, height: this.props.height}} />;
+  }
+});
+
 var Photo = React.createClass({
   render: function() {
     return (
@@ -63,6 +69,8 @@ function renderSamplePhotos(n) {
   return photos;
 }
 
+var SAMPLE_PHOTOS = renderSamplePhotos(5);
+
 var TWEEN_TIME = 200;
 
 // Some basic math we need to ensure the viewport is
@@ -74,14 +82,34 @@ function clamp(n, min, max) {
 var App = React.createClass({
   mixins: [TweenMixin], // gives us this.tweenState()
   clampPos: function(desiredPos) {
-    return clamp(desiredPos, -1 * (this.state.photos.length - 1) * SAMPLE_WIDTH, 0);
+    var min = -2 * SAMPLE_WIDTH;
+    var max = 0;
+    if (this.state.index === 0) {
+      max = -1 * SAMPLE_WIDTH;
+    }
+    if (this.state.index === SAMPLE_PHOTOS.length - 1) {
+      min = -1 * SAMPLE_WIDTH;
+    }
+    return clamp(desiredPos, min, max);
   },
   roundPos: function(desiredPos) {
     // round to nearest multiple of SAMPLE_WIDTH
     return Math.round(desiredPos / SAMPLE_WIDTH) * SAMPLE_WIDTH;
   },
   getInitialState: function() {
-    return {pos: 0, animating: false, photos: renderSamplePhotos(5)};
+    return {pos: -1 * SAMPLE_WIDTH, index: 0, animating: false, photos: this.getPhotos(0)};
+  },
+  getPhotos: function(index) {
+    var photos = [];
+    photos.push(SAMPLE_PHOTOS[index - 1] || <EmptyPhoto width={SAMPLE_WIDTH} height={SAMPLE_HEIGHT} />);
+    photos.push(SAMPLE_PHOTOS[index]);
+    photos.push(SAMPLE_PHOTOS[index + 1] || <EmptyPhoto width={SAMPLE_WIDTH} height={SAMPLE_HEIGHT} />);
+    return photos
+  },
+  updateIndex: function() {
+    var index = this.state.index - Math.round(this.state.pos / SAMPLE_WIDTH) - 1;
+    var photos = this.getPhotos(index);
+    this.setState({index: index, pos: -1 * SAMPLE_WIDTH, photos: photos});
   },
   handleStartGesturing: function() {
     // This is fired onTouchStart. We want the browser
@@ -95,7 +123,7 @@ var App = React.createClass({
     // the user *has* swiped then the tween will reset
     // animating; if not swiping we reset it here.
     if (!swiping) {
-      this.setState({animating: false});
+      this.setState({animating: false}, this.updateIndex);
     }
   },
   handleSwiping: function(data) {
@@ -119,6 +147,8 @@ var App = React.createClass({
     tween
       .to({pos: desiredPos}, TWEEN_TIME, EasingFunctions.easeOutBack)
       .to({animating: false}, 0);
+    // TODO: this sucks?
+    setTimeout(this.updateIndex, TWEEN_TIME * 2);
   },
   render: function() {
     // Build some simple DOM -- see photos.css for how

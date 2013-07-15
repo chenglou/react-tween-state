@@ -25,18 +25,23 @@ function round(n, min, max, pct) {
 // this as a best practice since it wastes memory!
 var imgElementCache = {};
 
+function getCachedImg(src, width, height) {
+  var img = imgElementCache[src];
+  if (!img) {
+    img = imgElementCache[src] = document.createElement('img');
+    img.src = src;
+    img.setAttribute('width', '100%');
+    img.setAttribute('height', '100%');
+  }
+  return img;
+}
+
 var LoremPixelCachedImage = React.createClass({
   render: function() {
     return <div />;
   },
   update: function() {
-    var img = imgElementCache[this.props.src];
-    if (!img) {
-      img = imgElementCache[this.props.src] = document.createElement('img');
-      img.src = this.props.src;
-      img.setAttribute('width', this.props.width);
-      img.setAttribute('height', this.props.height);
-    }
+    var img = getCachedImg(this.props.src);
     var node = this.getDOMNode();
     if (node.firstChild) {
       node.removeChild(node.firstChild);
@@ -86,9 +91,13 @@ var SAMPLE_HEIGHT = document.documentElement.clientHeight;
 function renderSamplePhotos(n) {
   var photos = [];
   for (var i = 0; i < n; i++) {
+    // warm the cache
+    var src = 'http://lorempixel.com/' + SAMPLE_WIDTH + '/' + SAMPLE_HEIGHT + '/sports/' + (i + 1);
+    // warm up the cache for demo purposes (again, to hack around LoremPixel)
+    getCachedImg(src);
     photos.push(
       <Photo
-        src={'http://lorempixel.com/' + SAMPLE_WIDTH + '/' + SAMPLE_HEIGHT + '/sports/' + (i + 1)}
+        src={src}
         width={SAMPLE_WIDTH}
         height={SAMPLE_HEIGHT}
         caption={'Sample image ' + i}

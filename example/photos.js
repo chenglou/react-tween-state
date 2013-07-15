@@ -43,8 +43,8 @@ var Photo = React.createClass({
   }
 });
 
-var SAMPLE_WIDTH = 240;
-var SAMPLE_HEIGHT = 320;
+var SAMPLE_WIDTH = document.documentElement.clientWidth;
+var SAMPLE_HEIGHT = document.documentElement.clientHeight;
 
 function renderSamplePhotos(n) {
   var photos = [];
@@ -67,8 +67,21 @@ SAMPLE_PHOTOS = renderSamplePhotos(5);
 
 var TWEEN_TIME = 275;
 
+// Some basic math we need to ensure the viewport is
+// positioned correctly
+function clamp(n, min, max) {
+  return Math.min(Math.max(n, min), max);
+}
+
 var App = React.createClass({
   mixins: [TweenMixin], // gives us this.tweenState()
+  clampPos: function(desiredPos) {
+    return clamp(desiredPos, -1 * (SAMPLE_PHOTOS.length - 1) * SAMPLE_WIDTH, 0);
+  },
+  roundPos: function(desiredPos) {
+    // round to nearest multiple of SAMPLE_WIDTH
+    return Math.round(desiredPos / SAMPLE_WIDTH) * SAMPLE_WIDTH;
+  },
   getInitialState: function() {
     return {pos: 0, animating: false};
   },
@@ -89,10 +102,11 @@ var App = React.createClass({
   },
   handleSwiping: function(data) {
     this.setState({
-      pos: this.state.pos + data.offset.x
+      pos: this.clampPos(this.state.pos + data.offset.x)
     });
   },
-  handleSwiped: function() {
+  handleSwiped: function(data) {
+    this.tweenPos(this.roundPos(this.state.pos));
   },
   tweenPos: function(desiredPos) {
     // A simple wrapper around our tweening behavior. We

@@ -18,11 +18,13 @@ body {
 }
 
 .Viewport {
-  /* TODO: position fixed */
-  height: 320px;
+  /* TODO: position fixed? also keep in sync w/ js */
+  bottom: 0;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
   overflow: hidden;
-  position: relative;
-  width: 240px;
 }
 
 .App {

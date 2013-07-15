@@ -146,9 +146,8 @@ var App = React.createClass({
     }
     tween
       .to({pos: desiredPos}, TWEEN_TIME, EasingFunctions.easeOutBack)
-      .to({animating: false}, 0);
-    // TODO: this sucks?
-    setTimeout(this.updateIndex, TWEEN_TIME * 2);
+      .to({animating: false}, 0)
+      .call(window.setTimeout.bind(window, this.updateIndex, 0)); // TODO: this is a hack
   },
   render: function() {
     // Build some simple DOM -- see photos.css for how

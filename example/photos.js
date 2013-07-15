@@ -123,8 +123,9 @@ var App = React.createClass({
       .to({animating: false}, 0);
   },
   render: function() {
-    // Build some simple DOM -- see layout.css for how
+    // Build some simple DOM -- see photos.css for how
     // it fits together.
+    // force3d on the sprite to avoid a flash when copying to vram
     return (
       <SwipeTarget
           class="Viewport"
@@ -132,7 +133,7 @@ var App = React.createClass({
           onStopGesturing={this.handleStopGesturing}
           onSwiping={this.handleSwiping}
           onSwiped={this.handleSwiped}>
-        <Sprite x={this.state.pos} class="App">
+        <Sprite x={this.state.pos} class="App" force3d={true}>
           <StaticSprite animating={this.state.animating}>
             <span>{SAMPLE_PHOTOS}</span>
           </StaticSprite>

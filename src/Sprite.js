@@ -50,7 +50,7 @@ var Sprite = React.createClass({
     this.everWas3d = false;
   },
   getStyle: function() {
-    if (!this.props.x && !this.props.y && !this.everWas3d && !this.force3d) {
+    if (!this.props.x && !this.props.y && !this.everWas3d && !this.props.force3d) {
       return EMPTY_STYLE;
     }
     if (HAS_3D && !this.props.no3d) {

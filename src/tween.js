@@ -356,6 +356,8 @@ var TweenMixin = {
   }
 };
 
+requestAnimationFrame(function() {}); // work around a bug in Safari 6
+
 window.Tween = Tween;
 window.TweenMixin = TweenMixin;
 window.EasingFunctions = EasingFunctions;

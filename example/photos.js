@@ -51,7 +51,7 @@ function renderSamplePhotos(n) {
   for (var i = 0; i < n; i++) {
     photos.push(
       <Photo
-      src={'http://lorempixel.com/' + SAMPLE_WIDTH + '/' + SAMPLE_HEIGHT + '/sports/' + (i + 1)}
+        src={'http://lorempixel.com/' + SAMPLE_WIDTH + '/' + SAMPLE_HEIGHT + '/sports/' + (i + 1)}
         width={SAMPLE_WIDTH}
         height={SAMPLE_HEIGHT}
         caption={'Sample image ' + i}
@@ -62,8 +62,6 @@ function renderSamplePhotos(n) {
   }
   return photos;
 }
-
-SAMPLE_PHOTOS = renderSamplePhotos(5);
 
 var TWEEN_TIME = 200;
 
@@ -76,14 +74,14 @@ function clamp(n, min, max) {
 var App = React.createClass({
   mixins: [TweenMixin], // gives us this.tweenState()
   clampPos: function(desiredPos) {
-    return clamp(desiredPos, -1 * (SAMPLE_PHOTOS.length - 1) * SAMPLE_WIDTH, 0);
+    return clamp(desiredPos, -1 * (this.state.photos.length - 1) * SAMPLE_WIDTH, 0);
   },
   roundPos: function(desiredPos) {
     // round to nearest multiple of SAMPLE_WIDTH
     return Math.round(desiredPos / SAMPLE_WIDTH) * SAMPLE_WIDTH;
   },
   getInitialState: function() {
-    return {pos: 0, animating: false};
+    return {pos: 0, animating: false, photos: renderSamplePhotos(5)};
   },
   handleStartGesturing: function() {
     // This is fired onTouchStart. We want the browser
@@ -135,7 +133,7 @@ var App = React.createClass({
           onSwiped={this.handleSwiped}>
         <Sprite x={this.state.pos} class="App" force3d={true}>
           <StaticSprite animating={this.state.animating}>
-            <span>{SAMPLE_PHOTOS}</span>
+            <span>{this.state.photos}</span>
           </StaticSprite>
         </Sprite>
       </SwipeTarget>

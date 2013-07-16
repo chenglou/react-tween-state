@@ -21,7 +21,7 @@ function round(n, min, max, pct) {
 
 var Image = React.createClass({
   render: function() {
-    return <div style={{width: this.props.width, height: this.props.height, background: this.props.src}} />;
+    return <div style={{width: this.props.width, height: this.props.height, background: 'url(' + this.props.src + ')'}} />;
   }
 });
 
@@ -54,11 +54,7 @@ var Photo = React.createClass({
   }
 });
 
-var SAMPLE_WIDTH = document.documentElement.clientWidth;
-var SAMPLE_HEIGHT = document.documentElement.clientHeight;
-var SRCS = ['red', 'green', 'blue', 'yellow', 'gray', 'orange'];
-
-var TWEEN_TIME = 225;
+var TWEEN_TIME = 325;
 
 // Some basic math we need to ensure the viewport is
 // positioned correctly
@@ -66,22 +62,22 @@ function clamp(n, min, max) {
   return Math.min(Math.max(n, min), max);
 }
 
-var App = React.createClass({
+var Gallery = React.createClass({
   mixins: [TweenMixin], // gives us this.tweenState()
   clampPos: function(desiredPos) {
-    var min = -1 * SAMPLE_WIDTH;
-    var max = SAMPLE_WIDTH;
+    var min = -1 * this.props.width;
+    var max = this.props.width;
     if (this.state.index === 0) {
       max = 0;
     }
-    if (this.state.index === SRCS.length - 1) {
+    if (this.state.index === this.props.children.length - 1) {
       min = 0;
     }
     return clamp(desiredPos, min, max);
   },
   roundPos: function(desiredPos) {
     // round to nearest multiple of SAMPLE_WIDTH
-    return Math.round(desiredPos / SAMPLE_WIDTH) * SAMPLE_WIDTH;
+    return Math.round(desiredPos / this.props.width) * this.props.width;
   },
   getInitialState: function() {
     return {dragPos: 0, index: 0, animating: false};
@@ -112,7 +108,7 @@ var App = React.createClass({
   snap: function() {
     if (this.state.dragPos > 0 && this.state.index > 0) {
       this.setState({index: this.state.index - 1, dragPos: 0});
-    } else if (this.state.dragPos < 0 && this.state.index < SRCS.length - 1) {
+    } else if (this.state.dragPos < 0 && this.state.index < this.props.children.length - 1) {
       this.setState({index: this.state.index + 1, dragPos: 0});
     } else {
       this.setState({dragPos: 0});
@@ -136,14 +132,13 @@ var App = React.createClass({
   renderPhotos: function() {
     // TODO: we could pool this, right?
     var photos = {};
-    for (var i = Math.max(0, this.state.index - 1); i <= Math.min(this.state.index + 1, SRCS.length - 1); i++) {
-      var src = SRCS[i];
-      var offset = (this.state.index - i) * -1 * SAMPLE_WIDTH;
+    for (var i = Math.max(0, this.state.index - 1); i <= Math.min(this.state.index + 1, this.props.children.length - 1); i++) {
+      var offset = (this.state.index - i) * -1 * this.props.width;
       // TODO: could just have 3 IDs maybe to reuse DOM nodes?
       photos['photo' + i] = (
         <Sprite x={offset + this.state.dragPos} class="PhotoSprite">
           <StaticSprite animating={this.state.animating}>
-            <Photo width={SAMPLE_WIDTH} height={SAMPLE_HEIGHT} src={src} />
+            {this.props.children[i]}
           </StaticSprite>
         </Sprite>
       );
@@ -167,4 +162,21 @@ var App = React.createClass({
   }
 });
 
-React.renderComponent(<App />, document.body);
+var SAMPLE_WIDTH = document.documentElement.clientWidth;
+var SAMPLE_HEIGHT = document.documentElement.clientHeight;
+var NUM_PHOTOS = 5;
+
+var photos = [];
+for (var i = 0; i < NUM_PHOTOS; i++) {
+  photos.push(
+    <Photo
+      width={SAMPLE_WIDTH}
+      height={SAMPLE_HEIGHT}
+      src={'http://lorempixel.com/' + SAMPLE_WIDTH + '/' + SAMPLE_HEIGHT + '/nature/' + (i + 1) + '/'}
+      caption={'Lorempixel placeholder image ' + (i + 1)}
+      domain={'lorempixel.com'}
+    />
+  )
+}
+
+React.renderComponent(<Gallery width={SAMPLE_WIDTH}>{photos}</Gallery>, document.body);

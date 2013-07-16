@@ -33,6 +33,7 @@ var Img = React.createClass({
     if (!this.isMounted()) {
       return;
     }
+    // TODO: it's possible that this will execute during an animation and skip a frame.
     this.setState({loaded: true});
   },
   componentWillMount: function() {
@@ -158,7 +159,7 @@ var Gallery = React.createClass({
       var offset = (this.state.index - i) * -1 * this.props.width;
       // TODO: could just have 3 IDs maybe to reuse DOM nodes?
       photos['photo' + i] = (
-        <Sprite x={offset + this.state.dragPos} class="PhotoSprite">
+        <Sprite x={offset + this.state.dragPos} class="PhotoSprite" force3d={true}>
           <StaticSprite animating={this.state.animating}>
             {this.props.children[i]}
           </StaticSprite>
@@ -170,7 +171,6 @@ var Gallery = React.createClass({
   render: function() {
     // Build some simple DOM -- see photos.css for how
     // it fits together.
-    // force3d on the sprite to avoid a flash when copying to vram
     return (
       <SwipeTarget
           class="Viewport"

@@ -132,7 +132,7 @@ var Gallery = React.createClass({
   renderPhotos: function() {
     // TODO: we could pool this, right?
     var photos = {};
-    for (var i = Math.max(0, this.state.index - 1); i <= Math.min(this.state.index + 1, this.props.children.length - 1); i++) {
+    for (var i = Math.max(0, this.state.index - this.props.bufsize); i <= Math.min(this.state.index + this.props.bufsize, this.props.children.length - 1); i++) {
       var offset = (this.state.index - i) * -1 * this.props.width;
       // TODO: could just have 3 IDs maybe to reuse DOM nodes?
       photos['photo' + i] = (
@@ -164,7 +164,8 @@ var Gallery = React.createClass({
 
 var SAMPLE_WIDTH = document.documentElement.clientWidth;
 var SAMPLE_HEIGHT = document.documentElement.clientHeight;
-var NUM_PHOTOS = 5;
+var NUM_PHOTOS = 10;
+var BUFSIZE = 2;
 
 var photos = [];
 for (var i = 0; i < NUM_PHOTOS; i++) {
@@ -179,4 +180,4 @@ for (var i = 0; i < NUM_PHOTOS; i++) {
   )
 }
 
-React.renderComponent(<Gallery width={SAMPLE_WIDTH}>{photos}</Gallery>, document.body);
+React.renderComponent(<Gallery bufsize={BUFSIZE} width={SAMPLE_WIDTH}>{photos}</Gallery>, document.body);

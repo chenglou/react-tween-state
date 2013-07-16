@@ -19,40 +19,9 @@ function round(n, min, max, pct) {
   }
 }
 
-// Lorempixel sends nocache headers so when we add/remove elements they are not cached.
-// NOTE: this is maybe a bad idea to keep the DOM node in memory, but it's good to keep
-// the image in cache. It's just a workaround for lorempixel's no cache -- don't take
-// this as a best practice since it wastes memory!
-var imgElementCache = {};
-
-function getCachedImg(src, width, height) {
-  var img = imgElementCache[src];
-  if (!img) {
-    img = imgElementCache[src] = document.createElement('img');
-    img.src = src;
-    img.setAttribute('width', '100%');
-    img.setAttribute('height', '100%');
-  }
-  return img;
-}
-
-var LoremPixelCachedImage = React.createClass({
+var Image = React.createClass({
   render: function() {
-    return <div />;
-  },
-  update: function() {
-    var img = getCachedImg(this.props.src);
-    var node = this.getDOMNode();
-    if (node.firstChild) {
-      node.removeChild(node.firstChild);
-    }
-    node.appendChild(img);
-  },
-  componentDidMount: function() {
-    this.update();
-  },
-  componentDidUpdate: function() {
-    this.update();
+    return <div style={{width: this.props.width, height: this.props.height, background: this.props.src}} />;
   }
 });
 
@@ -70,7 +39,7 @@ var Photo = React.createClass({
   render: function() {
     return (
       <PhotoContainer width={this.props.width} height={this.props.height}>
-        <LoremPixelCachedImage src={this.props.src} width="100%" height="100%" />
+        <Image src={this.props.src} width="100%" height="100%" />
         <div class="PhotoInfo">
           <div class="PhotoText">
             <div class="PhotoCaption">{this.props.caption}</div>
@@ -87,31 +56,9 @@ var Photo = React.createClass({
 
 var SAMPLE_WIDTH = document.documentElement.clientWidth;
 var SAMPLE_HEIGHT = document.documentElement.clientHeight;
+var SRCS = ['red', 'green', 'blue', 'yellow', 'gray', 'orange'];
 
-function renderSamplePhotos(n) {
-  var photos = [];
-  for (var i = 0; i < n; i++) {
-    // warm the cache
-    var src = 'http://lorempixel.com/' + SAMPLE_WIDTH + '/' + SAMPLE_HEIGHT + '/sports/' + (i + 1);
-    // warm up the cache for demo purposes (again, to hack around LoremPixel)
-    getCachedImg(src);
-    photos.push(
-      <Photo
-        src={src}
-        width={SAMPLE_WIDTH}
-        height={SAMPLE_HEIGHT}
-        caption={'Sample image ' + i}
-        domain="lorempixel.com"
-        key={'photo' + i}
-      />
-    );
-  }
-  return photos;
-}
-
-var SAMPLE_PHOTOS = renderSamplePhotos(5);
-
-var TWEEN_TIME = 200;
+var TWEEN_TIME = 225;
 
 // Some basic math we need to ensure the viewport is
 // positioned correctly
@@ -122,13 +69,13 @@ function clamp(n, min, max) {
 var App = React.createClass({
   mixins: [TweenMixin], // gives us this.tweenState()
   clampPos: function(desiredPos) {
-    var min = -2 * SAMPLE_WIDTH;
-    var max = 0;
+    var min = -1 * SAMPLE_WIDTH;
+    var max = SAMPLE_WIDTH;
     if (this.state.index === 0) {
-      max = -1 * SAMPLE_WIDTH;
+      max = 0;
     }
-    if (this.state.index === SAMPLE_PHOTOS.length - 1) {
-      min = -1 * SAMPLE_WIDTH;
+    if (this.state.index === SRCS.length - 1) {
+      min = 0;
     }
     return clamp(desiredPos, min, max);
   },
@@ -137,19 +84,7 @@ var App = React.createClass({
     return Math.round(desiredPos / SAMPLE_WIDTH) * SAMPLE_WIDTH;
   },
   getInitialState: function() {
-    return {pos: -1 * SAMPLE_WIDTH, index: 0, animating: false, photos: this.getPhotos(0)};
-  },
-  getPhotos: function(index) {
-    var photos = {};
-    photos['photo' + (index - 1)] = SAMPLE_PHOTOS[index - 1] || <PhotoContainer width={SAMPLE_WIDTH} height={SAMPLE_HEIGHT} />;
-    photos['photo' + index] = SAMPLE_PHOTOS[index];
-    photos['photo' + (index + 1)] = SAMPLE_PHOTOS[index + 1] || <PhotoContainer width={SAMPLE_WIDTH} height={SAMPLE_HEIGHT} />;
-    return photos
-  },
-  updateIndex: function() {
-    var index = this.state.index - Math.round(this.state.pos / SAMPLE_WIDTH) - 1;
-    var photos = this.getPhotos(index);
-    this.setState({index: index, pos: -1 * SAMPLE_WIDTH, photos: photos});
+    return {dragPos: 0, index: 0, animating: false};
   },
   handleStartGesturing: function() {
     // This is fired onTouchStart. We want the browser
@@ -163,16 +98,25 @@ var App = React.createClass({
     // the user *has* swiped then the tween will reset
     // animating; if not swiping we reset it here.
     if (!swiping) {
-      this.setState({animating: false}, this.updateIndex);
+      this.setState({animating: false}, this.snap);
     }
   },
   handleSwiping: function(data) {
     this.setState({
-      pos: this.clampPos(this.state.pos + data.offset.x)
+      dragPos: this.clampPos(this.state.dragPos + data.offset.x)
     });
   },
   handleSwiped: function(data) {
-    this.tweenPos(this.roundPos(this.state.pos));
+    this.tweenPos(this.roundPos(this.state.dragPos));
+  },
+  snap: function() {
+    if (this.state.dragPos > 0 && this.state.index > 0) {
+      this.setState({index: this.state.index - 1, dragPos: 0});
+    } else if (this.state.dragPos < 0 && this.state.index < SRCS.length - 1) {
+      this.setState({index: this.state.index + 1, dragPos: 0});
+    } else {
+      this.setState({dragPos: 0});
+    }
   },
   tweenPos: function(desiredPos) {
     // A simple wrapper around our tweening behavior. We
@@ -185,9 +129,26 @@ var App = React.createClass({
       tween.to({animating: true}, 0);
     }
     tween
-      .to({pos: desiredPos}, TWEEN_TIME, EasingFunctions.easeOutBack)
+      .to({dragPos: desiredPos}, TWEEN_TIME, EasingFunctions.easeOutBack)
       .to({animating: false}, 0)
-      .call(window.setTimeout.bind(window, this.updateIndex, 0)); // TODO: this is a hack
+      .call(window.setTimeout.bind(window, this.snap, 0)); // TODO: this is a hack
+  },
+  renderPhotos: function() {
+    // TODO: we could pool this, right?
+    var photos = {};
+    for (var i = Math.max(0, this.state.index - 1); i <= Math.min(this.state.index + 1, SRCS.length - 1); i++) {
+      var src = SRCS[i];
+      var offset = (this.state.index - i) * -1 * SAMPLE_WIDTH;
+      // TODO: could just have 3 IDs maybe to reuse DOM nodes?
+      photos['photo' + i] = (
+        <Sprite x={offset + this.state.dragPos} class="PhotoSprite">
+          <StaticSprite animating={this.state.animating}>
+            <Photo width={SAMPLE_WIDTH} height={SAMPLE_HEIGHT} src={src} />
+          </StaticSprite>
+        </Sprite>
+      );
+    }
+    return photos;
   },
   render: function() {
     // Build some simple DOM -- see photos.css for how
@@ -200,11 +161,7 @@ var App = React.createClass({
           onStopGesturing={this.handleStopGesturing}
           onSwiping={this.handleSwiping}
           onSwiped={this.handleSwiped}>
-        <Sprite x={this.state.pos} class="App" force3d={true}>
-          <StaticSprite animating={this.state.animating}>
-            <span>{this.state.photos}</span>
-          </StaticSprite>
-        </Sprite>
+        {this.renderPhotos()}
       </SwipeTarget>
     );
   }

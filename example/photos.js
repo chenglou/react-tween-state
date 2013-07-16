@@ -77,13 +77,7 @@ var Photo = React.createClass({
   }
 });
 
-var TWEEN_TIME = 325;
-
-// Some basic math we need to ensure the viewport is
-// positioned correctly
-function clamp(n, min, max) {
-  return Math.min(Math.max(n, min), max);
-}
+var TWEEN_TIME = 350;
 
 var Gallery = React.createClass({
   mixins: [TweenMixin], // gives us this.tweenState()
@@ -100,6 +94,11 @@ var Gallery = React.createClass({
   },
   roundPos: function(desiredPos) {
     // round to nearest multiple of SAMPLE_WIDTH
+    if (desiredPos < 0) {
+      return round(desiredPos, -1 * this.props.width, 0, .75);
+    } else {
+      return round(desiredPos, 0, this.props.width, .25);
+    }
     return Math.round(desiredPos / this.props.width) * this.props.width;
   },
   getInitialState: function() {

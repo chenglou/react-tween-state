@@ -19,9 +19,32 @@ function round(n, min, max, pct) {
   }
 }
 
-var Image = React.createClass({
+var Spinner = React.createClass({
   render: function() {
-    return <div style={{width: this.props.width, height: this.props.height, background: 'url(' + this.props.src + ')'}} />;
+    return <img class="Spinner" src="./ajax-loader.gif" />;
+  }
+});
+
+var Img = React.createClass({
+  getInitialState: function() {
+    return {loaded: false};
+  },
+  handleLoaded: function() {
+    if (!this.isMounted()) {
+      return;
+    }
+    this.setState({loaded: true});
+  },
+  componentWillMount: function() {
+    this.img = new Image();
+    this.img.onload = this.handleLoaded;
+    this.img.src = this.props.src;
+  },
+  render: function() {
+    if (!this.state.loaded) {
+      return <div class="Img" style={{width: this.props.width, height: this.props.height}}><Spinner /></div>;
+    }
+    return <div class="Img" style={{width: this.props.width, height: this.props.height, background: 'url(' + this.props.src + ')'}} />;
   }
 });
 
@@ -39,7 +62,7 @@ var Photo = React.createClass({
   render: function() {
     return (
       <PhotoContainer width={this.props.width} height={this.props.height}>
-        <Image src={this.props.src} width="100%" height="100%" />
+        <Img src={this.props.src} width="100%" height="100%" />
         <div class="PhotoInfo">
           <div class="PhotoText">
             <div class="PhotoCaption">{this.props.caption}</div>

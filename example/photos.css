@@ -14,7 +14,19 @@ body {
   font-family: 'helvetica neue';
   font-weight: lighter;
   color: #666;
-  background: #666;
+  background: #000;
+}
+
+.Img {
+  position: relative;
+}
+
+.Img .Spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: -16px;
+  margin-left: -16px;
 }
 
 .Viewport {

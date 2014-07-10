@@ -21,7 +21,7 @@ var tweenStateMixin = {
       stateName: stateName,
       initVal: this.state[stateName],
       config: config,
-      currentTime: 0,
+      initTime: Date.now(),
     });
     // tweenState proxies to setState
     var newState = {};
@@ -37,23 +37,18 @@ var tweenStateMixin = {
     if (this.state.tweenQueue.length === 0) {
       return;
     }
-    // the time increase happens before actually playing a frame, since the
-    // initial state value was already the first frame
-    this.state.tweenQueue.forEach(function(item) {
-      item.currentTime += 1000 / 60;
-    });
 
     // TODO: poll this
     var newTweenLayerState = {};
 
+    var now = Date.now();
     this.state.tweenQueue.forEach(function(item) {
-      // this.state.bla.nested.thing
-      var currentTime = item.currentTime > item.config.duration ?
+      var progressTime = now - item.initTime > item.config.duration ?
         item.config.duration :
-        item.currentTime;
+        now - item.initTime;
 
       newTweenLayerState[item.stateName] = item.config.easing(
-        currentTime,
+        progressTime,
         item.initVal,
         item.config.value,
         item.config.duration
@@ -66,7 +61,7 @@ var tweenStateMixin = {
     });
 
     this.state.tweenQueue = this.state.tweenQueue.filter(function(item) {
-      return item.currentTime < item.config.duration;
+      return now - item.initTime < item.config.duration;
     });
 
     requestAnimationFrame(this.rafCb);

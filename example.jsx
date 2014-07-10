@@ -24,7 +24,6 @@ var App = React.createClass({
   getInitialState: function() {
     return {
       blockPosition: 50,
-      atLeft: true,
     };
   },
 
@@ -32,18 +31,13 @@ var App = React.createClass({
     this.tweenState('blockPosition', {
       easing: easingTypes.easeOutQuad,
       duration: 300,
-      value: this.state.atLeft ? 300 : 50,
-    });
-
-    this.setState({
-      atLeft: !this.state.atLeft,
-      asd: Math.random()
+      value: this.state.blockPosition == 50 ? 300 : 50,
     });
   },
 
   render: function() {
     var blockStyle = {
-      left: this.state.blockPosition,
+      left: this.state.tweenLayer.blockPosition || this.state.blockPosition,
       top: 50
     };
 

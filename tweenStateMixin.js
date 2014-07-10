@@ -23,7 +23,10 @@ var tweenStateMixin = {
       config: config,
       currentTime: 0,
     });
-    console.log(this.state.tweenQueue.length);
+    // tweenState proxies to setState
+    var newState = {};
+    newState[stateName] = config.value;
+    this.setState(newState);
 
     if (this.state.tweenQueue.length === 1) {
       this.startRaf();
@@ -41,7 +44,7 @@ var tweenStateMixin = {
     });
 
     // TODO: poll this
-    var newState = {};
+    var newTweenLayerState = {};
 
     this.state.tweenQueue.forEach(function(item) {
       // this.state.bla.nested.thing
@@ -49,7 +52,7 @@ var tweenStateMixin = {
         item.config.duration :
         item.currentTime;
 
-      newState[item.stateName] = item.config.easing(
+      newTweenLayerState[item.stateName] = item.config.easing(
         currentTime,
         item.initVal,
         item.config.value,
@@ -58,7 +61,9 @@ var tweenStateMixin = {
       );
     }.bind(this));
 
-    this.setState(newState);
+    this.setState({
+      tweenLayer: newTweenLayerState
+    });
 
     this.state.tweenQueue = this.state.tweenQueue.filter(function(item) {
       return item.currentTime < item.config.duration;

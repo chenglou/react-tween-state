@@ -4,6 +4,11 @@ var easingTypes = {
   // new note: I much prefer specifying the final value rather than the change
   // in value this is what the repo's interpolation plugin api will use. Here,
   // c will stand for final value
+  linear: function(t, b, _c, d) {
+    var c = _c - b;
+    return t*c/d + b;
+  },
+
   easeInQuad: function (t, b, _c, d) {
     var c = _c - b;
     return c*(t/=d)*t + b;

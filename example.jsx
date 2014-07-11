@@ -7,7 +7,7 @@ var Block = React.createClass({
       position: 'absolute',
       width: 50,
       height: 70,
-      border: '1px solid blue'
+      outline: '1px solid blue',
     };
 
     return this.transferPropsTo(
@@ -29,8 +29,8 @@ var App = React.createClass({
 
   handleTweenClick: function() {
     this.tweenState('blockPosition', {
-      easing: easingTypes.easeOutQuad,
-      duration: 300,
+      easing: easingTypes.linear,
+      duration: 2000,
       value: this.state.blockPosition == 50 ? 300 : 50,
       onEnd: function() {
         console.log('Done!');
@@ -50,9 +50,19 @@ var App = React.createClass({
       top: 50
     };
 
+    var boundingBoxStyle = {
+      outline: '1px solid black',
+      position: 'absolute',
+      width: 300,
+      left: 50,
+      height: 80,
+      top: 50,
+    };
+
     return (
       <div>
         <button onClick={this.handleTweenClick}>Tween Me</button>
+        <div style={boundingBoxStyle} />
         <Block style={blockStyle}></Block>
       </div>
     );

@@ -27,23 +27,32 @@ var App = React.createClass({
     };
   },
 
-  handleClick: function() {
+  handleTweenClick: function() {
     this.tweenState('blockPosition', {
       easing: easingTypes.easeOutQuad,
       duration: 300,
       value: this.state.blockPosition == 50 ? 300 : 50,
+      onEnd: function() {
+        console.log('Done!');
+      }
     });
+  },
+
+  handleHardClick: function() {
+    // reset the state. Let's see how additive animation handles a duration of
+    // 0
   },
 
   render: function() {
     var blockStyle = {
+      // TODO: see TODO in getInitialState in mixin
       left: this.state.tweenLayer.blockPosition || this.state.blockPosition,
       top: 50
     };
 
     return (
       <div>
-        <button onClick={this.handleClick}>Toggle Me</button>
+        <button onClick={this.handleTweenClick}>Tween Me</button>
         <Block style={blockStyle}></Block>
       </div>
     );

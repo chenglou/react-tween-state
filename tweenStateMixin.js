@@ -1,7 +1,13 @@
 'use strict';
 
+function emptyFunc() {
+  // callable endpoint to simplify code
+}
+
 var tweenStateMixin = {
   getInitialState: function() {
+    // TODO: find a way to get component's initial state and copy them unto
+    // tweenLayer non-messily
     return {
       tweenQueue: [],
       tweenLayer: {},
@@ -17,18 +23,25 @@ var tweenStateMixin = {
   // },
 
   tweenState: function(stateName, config) {
-    this.state.tweenQueue.push({
+    var state = this.state;
+    // TODO: see TODO in getInitialState
+    if (state.tweenLayer[stateName] == null) {
+      // initial value is the current transitioning value
+      state.tweenLayer[stateName] = state[stateName];
+    }
+
+    state.tweenQueue.push({
       stateName: stateName,
-      initVal: this.state[stateName],
+      initVal: state.tweenLayer[stateName],
       config: config,
       initTime: Date.now(),
     });
-    // tweenState proxies to setState
+    // tweenState calls setState
     var newState = {};
     newState[stateName] = config.value;
     this.setState(newState);
 
-    if (this.state.tweenQueue.length === 1) {
+    if (state.tweenQueue.length === 1) {
       this.startRaf();
     }
   },
@@ -61,11 +74,7 @@ var tweenStateMixin = {
     });
 
     this.state.tweenQueue = this.state.tweenQueue.filter(function(item) {
-      var notDone = now - item.initTime < item.config.duration;
-			if(!notDone && item.config.onFinish){
-				setTimeout(item.config.onFinish, 0);
-			}
-			return notDone;
+      return now - item.initTime < item.config.duration;
     });
 
     requestAnimationFrame(this.rafCb);

@@ -1,9 +1,5 @@
 'use strict';
 
-function emptyFunc() {
-  // callable endpoint to simplify code
-}
-
 var tweenStateMixin = {
   getInitialState: function() {
     // TODO: find a way to get component's initial state and copy them unto
@@ -47,34 +43,42 @@ var tweenStateMixin = {
   },
 
   rafCb: function() {
-    if (this.state.tweenQueue.length === 0) {
+    var state = this.state;
+    if (state.tweenQueue.length === 0) {
       return;
     }
 
     // TODO: poll this
-    var newTweenLayerState = {};
+    var newTweenLayer = {};
 
     var now = Date.now();
-    this.state.tweenQueue.forEach(function(item) {
+    state.tweenQueue.forEach(function(item) {
       var progressTime = now - item.initTime > item.config.duration ?
         item.config.duration :
         now - item.initTime;
 
-      newTweenLayerState[item.stateName] = item.config.easing(
+      newTweenLayer[item.stateName] = item.config.easing(
         progressTime,
         item.initVal,
         item.config.value,
         item.config.duration
         // TODO: some funcs accept a 5th param
       );
-    }.bind(this));
+    }, this);
 
-    this.setState({
-      tweenLayer: newTweenLayerState
+    state.tweenQueue.forEach(function(item) {
+      if (now - item.initTime >= item.config.duration) {
+        item.config.onEnd && item.config.onEnd();
+      }
     });
 
-    this.state.tweenQueue = this.state.tweenQueue.filter(function(item) {
+    var newTweenQueue = state.tweenQueue.filter(function(item) {
       return now - item.initTime < item.config.duration;
+    });
+
+    this.setState({
+      tweenLayer: newTweenLayer,
+      tweenQueue: newTweenQueue,
     });
 
     requestAnimationFrame(this.rafCb);

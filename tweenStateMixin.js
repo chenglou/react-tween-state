@@ -61,7 +61,11 @@ var tweenStateMixin = {
     });
 
     this.state.tweenQueue = this.state.tweenQueue.filter(function(item) {
-      return now - item.initTime < item.config.duration;
+      var notDone = now - item.initTime < item.config.duration;
+			if(!notDone && item.config.onFinish){
+				setTimeout(item.config.onFinish, 0);
+			}
+			return notDone;
     });
 
     requestAnimationFrame(this.rafCb);

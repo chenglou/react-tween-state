@@ -22,19 +22,6 @@ var easingTypes = {
     if ((t/=d/2) < 1) return c/2*t*t + b;
     return -c/2 * ((--t)*(t-2) - 1) + b;
   },
-  easeInQuint: function (t, b, _c, d) {
-    var c = _c - b;
-    return c*(t/=d)*t*t*t*t + b;
-  },
-  easeOutQuint: function (t, b, _c, d) {
-    var c = _c - b;
-    return c*((t=t/d-1)*t*t*t*t + 1) + b;
-  },
-  easeInOutQuint: function (t, b, _c, d) {
-    var c = _c - b;
-    if ((t/=d/2) < 1) return c/2*t*t*t*t*t + b;
-    return c/2*((t-=2)*t*t*t*t + 2) + b;
-  },
   easeInSine: function (t, b, _c, d) {
     var c = _c - b;
     return -c * Math.cos(t/d * (Math.PI/2)) + c + b;
@@ -118,7 +105,7 @@ var easingTypes = {
   },
   easeInBounce: function (t, b, _c, d) {
     var c = _c - b;
-    return c - this.easeOutBounce (d-t, 0, c, d) + b;
+    return c - easingTypes.easeOutBounce (d-t, 0, c, d) + b;
   },
   easeOutBounce: function (t, b, _c, d) {
     var c = _c - b;
@@ -134,8 +121,8 @@ var easingTypes = {
   },
   easeInOutBounce: function (t, b, _c, d) {
     var c = _c - b;
-    if (t < d/2) return this.easeInBounce (t*2, 0, c, d) * .5 + b;
-    return this.easeOutBounce (t*2-d, 0, c, d) * .5 + c*.5 + b;
+    if (t < d/2) return easingTypes.easeInBounce (t*2, 0, c, d) * .5 + b;
+    return easingTypes.easeOutBounce (t*2-d, 0, c, d) * .5 + c*.5 + b;
   }
 };
 

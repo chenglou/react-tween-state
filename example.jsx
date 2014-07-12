@@ -29,9 +29,9 @@ var App = React.createClass({
 
   handleTweenClick: function() {
     this.tweenState('blockPosition', {
-      easing: easingTypes.linear,
-      duration: 2000,
-      value: this.state.blockPosition == 50 ? 300 : 50,
+      easing: easingTypes.easeInOutQuad,
+      duration: 1000,
+      value: this.state.blockPosition === 50 ? 400 : 50,
       onEnd: function() {
         console.log('Done!');
       }
@@ -46,6 +46,7 @@ var App = React.createClass({
   render: function() {
     var blockStyle = {
       // TODO: see TODO in getInitialState in mixin
+      // TODO: compute on the fly instead
       left: this.state.tweenLayer.blockPosition || this.state.blockPosition,
       top: 50
     };
@@ -53,7 +54,7 @@ var App = React.createClass({
     var boundingBoxStyle = {
       outline: '1px solid black',
       position: 'absolute',
-      width: 300,
+      width: 400,
       left: 50,
       height: 80,
       top: 50,

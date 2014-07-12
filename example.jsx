@@ -45,9 +45,7 @@ var App = React.createClass({
 
   render: function() {
     var blockStyle = {
-      // TODO: see TODO in getInitialState in mixin
-      // TODO: compute on the fly instead
-      left: this.state.tweenLayer.blockPosition || this.state.blockPosition,
+      left: this.getTweeningValue('blockPosition'),
       top: 50
     };
 

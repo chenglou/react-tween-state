@@ -6,7 +6,7 @@ var Block = React.createClass({
     var style = {
       position: 'absolute',
       width: 50,
-      height: 70,
+      height: 50,
       outline: '1px solid blue',
     };
 
@@ -23,30 +23,46 @@ var App = React.createClass({
 
   getInitialState: function() {
     return {
-      blockPosition: 50,
+      blockPos: {x: 50, y: 100},
+      counter: 0,
     };
   },
 
   handleTweenClick: function() {
-    this.tweenState('blockPosition', {
+    this.tweenState(function(state) {return state.blockPos;}, 'x', {
       easing: easingTypes.easeInOutQuad,
       duration: 1000,
-      value: this.state.blockPosition === 50 ? 400 : 50,
-      onEnd: function() {
-        console.log('Done!');
-      }
+      value: this.state.blockPos.x === 50 ? 400 : 50,
+    });
+    this.tweenState(function(state) {return state.blockPos;}, 'y', {
+      easing: easingTypes.easeInOutQuad,
+      duration: 1000,
+      value: this.state.blockPos.y === 100 ? 400 : 100,
     });
   },
 
+  count: function() {
+    // API shorthand
+    this.tweenState('counter', {
+      easing: easingTypes.easeOutQuad,
+      duration: 500,
+      value: this.state.counter + 500,
+      onEnd: this.count
+    });
+  },
+
+  componentDidMount: function() {
+    this.count();
+  },
+
   handleHardClick: function() {
-    // reset the state. Let's see how additive animation handles a duration of
-    // 0
+    // TODO: reset the state. Needa destory those items on the queue
   },
 
   render: function() {
     var blockStyle = {
-      left: this.getTweeningValue('blockPosition'),
-      top: 50
+      left: this.getTweeningValue(function(state) {return state.blockPos;}, 'x'),
+      top: this.getTweeningValue(function(state) {return state.blockPos;}, 'y'),
     };
 
     var boundingBoxStyle = {
@@ -54,12 +70,15 @@ var App = React.createClass({
       position: 'absolute',
       width: 400,
       left: 50,
-      height: 80,
-      top: 50,
+      height: 350,
+      top: 100,
     };
 
     return (
       <div>
+        <div>
+          {Math.round(this.getTweeningValue('counter') / 100)} {'<-'} easeOutQuad on a counter
+        </div>
         <button onClick={this.handleTweenClick}>Tween Me</button>
         <div style={boundingBoxStyle} />
         <Block style={blockStyle}></Block>

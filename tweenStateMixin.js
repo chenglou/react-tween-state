@@ -5,7 +5,23 @@
 //   setTimeout(func, 1000);
 // }
 
-var tweenStateMixin = {
+// additive is the new iOS 8 default. In most cases it simulates a physics-
+// looking overshoot behavior (especially with easeInOut. You can test that in
+// the example
+var DEFAULT_STACK_BEHAVIOR = 'ADDITIVE';
+var DEFAULT_EASING = window.easingTypes.easeInOutQuad;
+var DEFAULT_DURATION = 300;
+
+var tweenState = {
+  easingTypes: window.easingTypes,
+  stackBehavior: {
+    ADDITIVE: 'ADDITIVE',
+    // QUEUED: 'QUEUED',
+    DESTROY: 'DESTROY',
+  }
+};
+
+tweenState.Mixin = {
   getInitialState: function() {
     return {
       tweenQueue: [],
@@ -41,6 +57,18 @@ var tweenStateMixin = {
     var state = this.state;
     var stateRef = stateRefFunc(state);
 
+    // see the reasoning for these defaults at the top
+    config.stackBehavior = config.stackBehavior || DEFAULT_STACK_BEHAVIOR;
+    config.easing = config.easing || DEFAULT_EASING;
+    config.duration = config.duration || DEFAULT_DURATION;
+
+    var newTweenQueue;
+    if (config.stackBehavior === tweenState.stackBehavior.DESTROY) {
+      newTweenQueue = state.tweenQueue.filter(function(item) {
+        return item.stateName !== config.stateName && item.stateRefFunc(state) !== stateRefFunc(state);
+      });
+    }
+
     state.tweenQueue.push({
       stateRefFunc: stateRefFunc,
       stateName: stateName,
@@ -52,6 +80,10 @@ var tweenStateMixin = {
     // tweenState calls setState
     // sorry for mutating. No idea where in the state the value is
     stateRef[stateName] = config.value;
+    if (newTweenQueue) {
+      // might as well spare an allocation if we're already mutating above
+      state.tweenQueue = newTweenQueue;
+    }
     this.setState(this.state);
 
     if (state.tweenQueue.length === 1) {
@@ -128,4 +160,4 @@ var tweenStateMixin = {
 
 };
 
-window.tweenStateMixin = tweenStateMixin;
+window.tweenState = tweenState;

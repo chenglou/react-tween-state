@@ -1,5 +1,5 @@
 /** @jsx React.DOM */
-/* global tweenStateMixin, easingTypes */
+/* global tweenState */
 
 var Block = React.createClass({
   render: function() {
@@ -11,15 +11,13 @@ var Block = React.createClass({
     };
 
     return this.transferPropsTo(
-      <div style={style}>
-        Hi
-      </div>
+      <div style={style} />
     );
   }
 });
 
 var App = React.createClass({
-  mixins: [tweenStateMixin],
+  mixins: [tweenState.Mixin],
 
   getInitialState: function() {
     return {
@@ -30,12 +28,12 @@ var App = React.createClass({
 
   handleTweenClick: function() {
     this.tweenState(function(state) {return state.blockPos;}, 'x', {
-      easing: easingTypes.easeInOutQuad,
+      easing: tweenState.easingTypes.easeInOutQuad,
       duration: 1000,
       value: this.state.blockPos.x === 50 ? 400 : 50,
     });
     this.tweenState(function(state) {return state.blockPos;}, 'y', {
-      easing: easingTypes.easeInOutQuad,
+      easing: tweenState.easingTypes.easeInOutQuad,
       duration: 1000,
       value: this.state.blockPos.y === 100 ? 400 : 100,
     });
@@ -44,7 +42,7 @@ var App = React.createClass({
   count: function() {
     // API shorthand
     this.tweenState('counter', {
-      easing: easingTypes.easeOutQuad,
+      easing: tweenState.easingTypes.easeOutQuad,
       duration: 500,
       value: this.state.counter + 500,
       onEnd: this.count
@@ -56,7 +54,16 @@ var App = React.createClass({
   },
 
   handleHardClick: function() {
-    // TODO: reset the state. Needa destory those items on the queue
+    this.tweenState(function(state) {return state.blockPos;}, 'x', {
+      stackBehavior: tweenState.stackBehavior.DESTROY,
+      duration: 0,
+      value: this.state.blockPos.x === 50 ? 400 : 50,
+    });
+    this.tweenState(function(state) {return state.blockPos;}, 'y', {
+      stackBehavior: tweenState.stackBehavior.DESTROY,
+      duration: 0,
+      value: this.state.blockPos.y === 100 ? 400 : 100,
+    });
   },
 
   render: function() {
@@ -80,6 +87,7 @@ var App = React.createClass({
           {Math.round(this.getTweeningValue('counter') / 100)} {'<-'} easeOutQuad on a counter
         </div>
         <button onClick={this.handleTweenClick}>Tween Me</button>
+        <button onClick={this.handleHardClick}>Reset Me</button>
         <div style={boundingBoxStyle} />
         <Block style={blockStyle}></Block>
       </div>

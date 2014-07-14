@@ -4,11 +4,11 @@ var easingTypes = {
   // new note: I much prefer specifying the final value rather than the change
   // in value this is what the repo's interpolation plugin api will use. Here,
   // c will stand for final value
+
   linear: function(t, b, _c, d) {
     var c = _c - b;
     return t*c/d + b;
   },
-
   easeInQuad: function (t, b, _c, d) {
     var c = _c - b;
     return c*(t/=d)*t + b;
@@ -21,46 +21,6 @@ var easingTypes = {
     var c = _c - b;
     if ((t/=d/2) < 1) return c/2*t*t + b;
     return -c/2 * ((--t)*(t-2) - 1) + b;
-  },
-  easeInSine: function (t, b, _c, d) {
-    var c = _c - b;
-    return -c * Math.cos(t/d * (Math.PI/2)) + c + b;
-  },
-  easeOutSine: function (t, b, _c, d) {
-    var c = _c - b;
-    return c * Math.sin(t/d * (Math.PI/2)) + b;
-  },
-  easeInOutSine: function (t, b, _c, d) {
-    var c = _c - b;
-    return -c/2 * (Math.cos(Math.PI*t/d) - 1) + b;
-  },
-  easeInExpo: function (t, b, _c, d) {
-    var c = _c - b;
-    return (t==0) ? b : c * Math.pow(2, 10 * (t/d - 1)) + b;
-  },
-  easeOutExpo: function (t, b, _c, d) {
-    var c = _c - b;
-    return (t==d) ? b+c : c * (-Math.pow(2, -10 * t/d) + 1) + b;
-  },
-  easeInOutExpo: function (t, b, _c, d) {
-    var c = _c - b;
-    if (t==0) return b;
-    if (t==d) return b+c;
-    if ((t/=d/2) < 1) return c/2 * Math.pow(2, 10 * (t - 1)) + b;
-    return c/2 * (-Math.pow(2, -10 * --t) + 2) + b;
-  },
-  easeInCirc: function (t, b, _c, d) {
-    var c = _c - b;
-    return -c * (Math.sqrt(1 - (t/=d)*t) - 1) + b;
-  },
-  easeOutCirc: function (t, b, _c, d) {
-    var c = _c - b;
-    return c * Math.sqrt(1 - (t=t/d-1)*t) + b;
-  },
-  easeInOutCirc: function (t, b, _c, d) {
-    var c = _c - b;
-    if ((t/=d/2) < 1) return -c/2 * (Math.sqrt(1 - t*t) - 1) + b;
-    return c/2 * (Math.sqrt(1 - (t-=2)*t) + 1) + b;
   },
   easeInElastic: function (t, b, _c, d) {
     var c = _c - b;

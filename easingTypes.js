@@ -1,3 +1,5 @@
+'use strict';
+
 var easingTypes = {
   // t: current time, b: beginning value, c: change in value, d: duration
 
@@ -86,7 +88,7 @@ var easingTypes = {
   }
 };
 
-window.easingTypes = easingTypes;
+module.exports = easingTypes;
 
 /*
  *

@@ -1,0 +1,20 @@
+{
+  "name": "react-tween-state-example",
+  "version": "0.0.0",
+  "description": "React animation.",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node_modules/.bin/browserify -t reactify example1.jsx > example1.js & node_modules/.bin/browserify -t reactify example2.jsx > example2.js"
+  },
+  "author": "Cheng Lou",
+  "license": "BSD",
+  "devDependencies": {
+    "browserify": "^4.2.0",
+    "reactify": "^0.13.1"
+  },
+  "dependencies": {
+    "envify": "^1.2.1",
+    "react": "^0.10.0"
+  }
+}

@@ -1,23 +1,24 @@
 'use strict';
 
-// function requestAnimationFrame(func) {
-//   setTimeout(func, 1000/60);
-//   setTimeout(func, 1000);
-// }
+var easingTypes = require('./easingTypes');
 
 // additive is the new iOS 8 default. In most cases it simulates a physics-
 // looking overshoot behavior (especially with easeInOut. You can test that in
 // the example
 var DEFAULT_STACK_BEHAVIOR = 'ADDITIVE';
-var DEFAULT_EASING = window.easingTypes.easeInOutQuad;
+var DEFAULT_EASING = easingTypes.easeInOutQuad;
 var DEFAULT_DURATION = 300;
 
+// see usage below
+function returnState(state) {
+  return state;
+}
+
 var tweenState = {
-  easingTypes: window.easingTypes,
+  easingTypes: easingTypes,
   stackBehavior: {
     ADDITIVE: 'ADDITIVE',
-    // QUEUED: 'QUEUED',
-    DESTROY: 'DESTROY',
+    DESTRUCTIVE: 'DESTRUCTIVE',
   }
 };
 
@@ -27,14 +28,6 @@ tweenState.Mixin = {
       tweenQueue: [],
     };
   },
-
-  // updates: 0,
-
-  // componentDidUpdate: function() {
-  //   if (this.updates++ > 999) {
-  //     throw 'infinite recursion';
-  //   }
-  // },
 
   tweenState: function(a, b, c) {
     // tweenState(stateNameString, config)
@@ -48,43 +41,40 @@ tweenState.Mixin = {
     if (typeof a === 'string') {
       c = b;
       b = a;
-      a = function(state) {return state;};
+      a = returnState;
     }
     this._tweenState(a, b, c);
   },
 
   _tweenState: function(stateRefFunc, stateName, config) {
-    var state = this.state;
+    var state = this._pendingState || this.state;
     var stateRef = stateRefFunc(state);
 
     // see the reasoning for these defaults at the top
     config.stackBehavior = config.stackBehavior || DEFAULT_STACK_BEHAVIOR;
     config.easing = config.easing || DEFAULT_EASING;
     config.duration = config.duration || DEFAULT_DURATION;
+    config.beginValue = config.beginValue || stateRef[stateName];
 
-    var newTweenQueue;
-    if (config.stackBehavior === tweenState.stackBehavior.DESTROY) {
+    var newTweenQueue = state.tweenQueue;
+    if (config.stackBehavior === tweenState.stackBehavior.DESTRUCTIVE) {
       newTweenQueue = state.tweenQueue.filter(function(item) {
-        return item.stateName !== config.stateName && item.stateRefFunc(state) !== stateRefFunc(state);
+        return item.stateName !== stateName || item.stateRefFunc(state) !== stateRef;
       });
     }
 
-    state.tweenQueue.push({
+    newTweenQueue.push({
       stateRefFunc: stateRefFunc,
       stateName: stateName,
-      initVal: stateRef[stateName],
       config: config,
       initTime: Date.now(),
     });
 
     // tweenState calls setState
     // sorry for mutating. No idea where in the state the value is
-    stateRef[stateName] = config.value;
-    if (newTweenQueue) {
-      // might as well spare an allocation if we're already mutating above
-      state.tweenQueue = newTweenQueue;
-    }
-    this.setState(this.state);
+    stateRef[stateName] = config.endValue;
+    // this will also include the above update
+    this.setState({tweenQueue: newTweenQueue});
 
     if (state.tweenQueue.length === 1) {
       this.startRaf();
@@ -95,7 +85,7 @@ tweenState.Mixin = {
     // see tweenState API
     if (typeof a === 'string') {
       b = a;
-      a = function(state) {return state;};
+      a = returnState;
     }
     return this._getTweeningValue(a, b);
   },
@@ -117,10 +107,10 @@ tweenState.Mixin = {
         item.config.duration :
         now - item.initTime;
 
-      var contrib = -item.config.value + item.config.easing(
+      var contrib = -item.config.endValue + item.config.easing(
         progressTime,
-        item.initVal,
-        item.config.value,
+        item.config.beginValue,
+        item.config.endValue,
         item.config.duration
         // TODO: some funcs accept a 5th param
       );
@@ -160,4 +150,4 @@ tweenState.Mixin = {
 
 };
 
-window.tweenState = tweenState;
+module.exports = tweenState;

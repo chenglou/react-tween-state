@@ -1,6 +1,6 @@
 /** @jsx React.DOM */
 
-var tweenState = require('../tweenState');
+var tweenState = require('../');
 var React = require('react');
 
 var App1 = React.createClass({

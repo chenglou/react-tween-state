@@ -1,8 +1,8 @@
 {
   "name": "react-tween-state",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "React animation.",
-  "main": "tweenStateMixin.js",
+  "main": "index.js",
   "directories": {
     "examples": "examples"
   },

@@ -127,7 +127,7 @@ module.exports = easingTypes;
 },{}],2:[function(require,module,exports){
 /** @jsx React.DOM */
 
-var tweenState = require('../tweenState');
+var tweenState = require('../');
 var React = require('react');
 
 var App1 = React.createClass({displayName: 'App1',
@@ -161,7 +161,7 @@ var App1 = React.createClass({displayName: 'App1',
 
 React.renderComponent(App1(null ), document.querySelector('#content1'));
 
-},{"../tweenState":139,"react":138}],3:[function(require,module,exports){
+},{"../":139,"react":138}],3:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};

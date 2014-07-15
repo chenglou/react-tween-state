@@ -41,7 +41,11 @@ var App = React.createClass({
 });
 ```
 
-### `this.tweenState(stateNameString, configurationObject)`
+### General
+
+#### `this.tweenState(stateNameString, configurationObject)`
+
+This immediately calls `setState` on your state name under the hood, and also creates a virtual "layer", in which your state didn't jump straight to the final value: rather, it is being tweened. `this.getTweeningValue(stateNameString)` lets you access the tweening value on that layer. Formal API below.
 
 `stateNameString` is the name of the state you want to tween.
 
@@ -65,7 +69,13 @@ var App = React.createClass({
   - `onEnd`: the callback to trigger when the animation's done.
   - `stackBehavior` (default: `tweenState.stackBehavior.ADDITIVE`). Subsequent tweening to the same state value will be stacked (added together). This gives a smooth tweening effect that is iOS 8's new default. [This blog post](http://ronnqvi.st/multiple-animations/) describes it well. The other option is `tweenState.stackBehavior.DESTRUCTIVE`, which replaces all current animations of that state value by this new one.
 
-### `this.tweenState(stateRefFunction, stateNameString, configurationObject)`
+#### `this.getTweeningValue(stateNameString)`
+
+After you call `this.tweenState(...)`, the state value is set just like after a normal `setState()`. To actually get the current, tweening value of that state, you'd use `this.getTweeningValue(stateNameString)` (typically used in `render`).
+
+### Advanced
+
+#### `this.tweenState(stateRefFunction, stateNameString, configurationObject)`
 
 Sometimes, you want to tween not `this.state.myValue`, but the value in `this.state.myObject.myArray[4]`, in which case passing only a string of the state name isn't enough. The second form of `tweenState()` accepts a function and expects you to return the state path of the value you tween, like this:
 
@@ -79,10 +89,14 @@ getInitialState: function() {
   };
 }
 // ... tween this.state.rectangles[0].x
-this.tweenState(function(state) {return state.rectangles[0]}, 'x', config);
+this.tweenState(function(state) {return state.rectangles[0]}, 'x', configurationObject);
 ```
 
 `configurationObject` is the same.
+
+#### `this.getTweeningValue(stateRefFunction, stateNameString)`
+
+See above. Usage: `this.getTweeningValue(function(state) {return state.rectangles[0]}, 'x')`.
 
 ## Goal of this library
 

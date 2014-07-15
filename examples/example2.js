@@ -17725,7 +17725,7 @@ tweenState.Mixin = {
     return tweeningValue;
   },
 
-  rafCb: function() {
+  _rafCb: function() {
     var state = this.state;
     if (state.tweenQueue.length === 0) {
       return;
@@ -17746,11 +17746,11 @@ tweenState.Mixin = {
       tweenQueue: newTweenQueue,
     });
 
-    requestAnimationFrame(this.rafCb);
+    requestAnimationFrame(this._rafCb);
   },
 
   startRaf: function() {
-    requestAnimationFrame(this.rafCb);
+    requestAnimationFrame(this._rafCb);
   },
 
 };

@@ -17613,8 +17613,8 @@ tweenState.Mixin = {
     // see the reasoning for these defaults at the top
     config.stackBehavior = config.stackBehavior || DEFAULT_STACK_BEHAVIOR;
     config.easing = config.easing || DEFAULT_EASING;
-    config.duration = config.duration || DEFAULT_DURATION;
-    config.beginValue = config.beginValue || stateRef[stateName];
+    config.duration = config.duration == null ? DEFAULT_DURATION : config.duration;
+    config.beginValue = config.beginValue == null ? stateRef[stateName] : config.beginValue;
 
     var newTweenQueue = state.tweenQueue;
     if (config.stackBehavior === tweenState.stackBehavior.DESTRUCTIVE) {

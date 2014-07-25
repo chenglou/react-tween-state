@@ -17681,7 +17681,7 @@ tweenState.Mixin = {
     // this will also include the above update
     this.setState({tweenQueue: newTweenQueue});
 
-    if (state.tweenQueue.length === 1) {
+    if (newTweenQueue.length === 1) {
       this.startRaf();
     }
   },

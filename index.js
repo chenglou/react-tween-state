@@ -8,6 +8,7 @@ var easingTypes = require('./easingTypes');
 var DEFAULT_STACK_BEHAVIOR = 'ADDITIVE';
 var DEFAULT_EASING = easingTypes.easeInOutQuad;
 var DEFAULT_DURATION = 300;
+var DEFAULT_DELAY = 0;
 
 // see usage below
 function returnState(state) {
@@ -55,6 +56,7 @@ tweenState.Mixin = {
     config.easing = config.easing || DEFAULT_EASING;
     config.duration = config.duration == null ? DEFAULT_DURATION : config.duration;
     config.beginValue = config.beginValue == null ? stateRef[stateName] : config.beginValue;
+    config.delay = config.duration == null ? DEFAULT_DELAY : config.delay;
 
     var newTweenQueue = state.tweenQueue;
     if (config.stackBehavior === tweenState.stackBehavior.DESTRUCTIVE) {
@@ -67,7 +69,7 @@ tweenState.Mixin = {
       stateRefFunc: stateRefFunc,
       stateName: stateName,
       config: config,
-      initTime: Date.now(),
+      initTime: Date.now() + config.delay,
     });
 
     // tweenState calls setState
@@ -105,7 +107,7 @@ tweenState.Mixin = {
 
       var progressTime = now - item.initTime > item.config.duration ?
         item.config.duration :
-        now - item.initTime;
+        Math.max(0, now - item.initTime);
 
       var contrib = -item.config.endValue + item.config.easing(
         progressTime,

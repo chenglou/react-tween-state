@@ -3,6 +3,7 @@ Legend:
   - [F]: fix
 
 ### 0.0.2 (July 25th 2014)
+- [I] Delay option. See the updated README.
 - [F] Default param not initialized correctly.
 - [F] Animation not starting.
 

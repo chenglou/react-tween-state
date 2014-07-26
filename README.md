@@ -65,11 +65,13 @@ This immediately calls `setState` on your state name under the hood, and also cr
 
   - `easing` (default: `tweenState.easingTypes.easeInOutQuad`): the interpolation function used. react-tween-state provides [frequently used interpolation](https://github.com/chenglou/react-tween-state/blob/master/easingTypes.js) (all exposed inside `tweenState.easingTypes`). In case you ever create your own, the function signature is: `(currentTime: Number, beginValue: Number, endValue: Number, totalDuration: Number): Number`.
   - `duration` (default: `300`).
-  - `delay` (default: `0`).
+  - `delay` (default: `0`). *
   - `beginValue` (default: the current value the state being tweened, `this.state[stateNameString]`).
   - `endValue`.
   - `onEnd`: the callback to trigger when the animation's done.
   - `stackBehavior` (default: `tweenState.stackBehavior.ADDITIVE`). Subsequent tweening to the same state value will be stacked (added together). This gives a smooth tweening effect that is iOS 8's new default. [This blog post](http://ronnqvi.st/multiple-animations/) describes it well. The other option is `tweenState.stackBehavior.DESTRUCTIVE`, which replaces all current animations of that state value by this new one.
+
+* For a destructive animation, starting the next one with a delay still immediately kills the previous tween. If that's not your intention, try `setTimeout` or additive animation.
 
 #### `this.getTweeningValue(stateNameString)`
 

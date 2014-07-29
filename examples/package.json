@@ -5,7 +5,7 @@
   "main": "index.html",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node_modules/.bin/browserify -t reactify example1.jsx > example1.js & node_modules/.bin/browserify -t reactify example2.jsx > example2.js"
+    "build": "node_modules/.bin/browserify -t reactify example1.jsx > example1.js & node_modules/.bin/browserify -t reactify example2.jsx > example2.js & node_modules/.bin/browserify -t reactify example3.jsx > example3.js"
   },
   "author": "Cheng Lou",
   "license": "BSD",

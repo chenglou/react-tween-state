@@ -182,29 +182,29 @@ var App2 = React.createClass({displayName: 'App2',
     };
 
     return (
-      React.DOM.div( {style:{padding: 10}}, 
-        React.DOM.div(null, React.DOM.button( {onClick:this.handleTweenClick}, "Tween Me")),
+      React.DOM.div({style: {padding: 10}}, 
+        React.DOM.div(null, React.DOM.button({onClick: this.handleTweenClick}, "Tween Me")), 
 
-        "Dumb Destructive Transition",
-        React.DOM.div( {className:"boundingBoxStyle"}, 
-          React.DOM.div( {className:"block", style:block1Style} )
-        ),
+        "Dumb Destructive Transition", 
+        React.DOM.div({className: "boundingBoxStyle"}, 
+          React.DOM.div({className: "block", style: block1Style})
+        ), 
 
-        "Slightly smarter Destructive Transition (CSS default)",
-        React.DOM.div( {className:"boundingBoxStyle"}, 
-          React.DOM.div( {className:"block", style:block2Style} )
-        ),
+        "Slightly smarter Destructive Transition (CSS default)", 
+        React.DOM.div({className: "boundingBoxStyle"}, 
+          React.DOM.div({className: "block", style: block2Style})
+        ), 
 
-        "Optimal default (additive animation, iOS 8 default)",
-        React.DOM.div( {className:"boundingBoxStyle"}, 
-          React.DOM.div( {className:"block", style:block3Style} )
+        "Optimal default (additive animation, iOS 8 default)", 
+        React.DOM.div({className: "boundingBoxStyle"}, 
+          React.DOM.div({className: "block", style: block3Style})
         )
       )
     );
   }
 });
 
-React.renderComponent(App2(null ), document.querySelector('#content2'));
+React.renderComponent(App2(null), document.querySelector('#content2'));
 
 },{"../":139,"react":138}],3:[function(require,module,exports){
 // shim for using process in browser
@@ -17730,6 +17730,10 @@ tweenState.Mixin = {
   },
 
   _rafCb: function() {
+    if (!this.isMounted()) {
+      return;
+    }
+
     var state = this.state;
     if (state.tweenQueue.length === 0) {
       return;

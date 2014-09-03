@@ -159,7 +159,7 @@ var App1 = React.createClass({displayName: 'App1',
   }
 });
 
-React.renderComponent(App1(null ), document.querySelector('#content1'));
+React.renderComponent(App1(null), document.querySelector('#content1'));
 
 },{"../":139,"react":138}],3:[function(require,module,exports){
 // shim for using process in browser
@@ -17685,6 +17685,10 @@ tweenState.Mixin = {
   },
 
   _rafCb: function() {
+    if (!this.isMounted()) {
+      return;
+    }
+
     var state = this.state;
     if (state.tweenQueue.length === 0) {
       return;

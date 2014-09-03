@@ -125,6 +125,10 @@ tweenState.Mixin = {
   },
 
   _rafCb: function() {
+    if (!this.isMounted()) {
+      return;
+    }
+
     var state = this.state;
     if (state.tweenQueue.length === 0) {
       return;

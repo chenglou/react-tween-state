@@ -4,9 +4,17 @@ The equivalent of React's `this.setState`, but for animated tweening: `this.twee
 
 [Live demo](https://rawgit.com/chenglou/react-tween-state/master/examples/index.html) and [source](https://github.com/chenglou/react-tween-state/tree/master/examples).
 
+Npm:
 ```sh
 npm install react-tween-state
 ```
+
+Bower:
+```sh
+bower install react-tween-state
+```
+
+*For Bower*: the single source file is `index-bower.js`, not `index.js`.
 
 ## API
 

@@ -2,6 +2,10 @@ Legend:
   - [I]: improvement
   - [F]: fix
 
+### 0.0.4 (November 14th 2014)
+- [I] Bower support!
+- [F] The passed-in config object is no longer mutated.
+
 ### 0.0.3 (August 2nd 2014)
 - [F] Stop animation after the component's unmounted.
 

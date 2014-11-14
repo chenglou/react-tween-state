@@ -14,7 +14,7 @@ Bower:
 bower install react-tween-state
 ```
 
-*For Bower*: the single source file is `index-bower.js`, not `index.js`.
+*For Bower*: the single source file is `index-bower.js`.
 
 ## API
 

@@ -10,6 +10,17 @@ var DEFAULT_EASING = easingTypes.easeInOutQuad;
 var DEFAULT_DURATION = 300;
 var DEFAULT_DELAY = 0;
 
+function shallowClone(obj) {
+  var ret = {};
+  for (var key in obj) {
+    if (!obj.hasOwnProperty(key)) {
+      continue;
+    }
+    ret[key] = obj[key];
+  }
+  return ret;
+}
+
 // see usage below
 function returnState(state) {
   return state;
@@ -48,6 +59,8 @@ tweenState.Mixin = {
   },
 
   _tweenState: function(stateRefFunc, stateName, config) {
+    config = shallowClone(config);
+
     var state = this._pendingState || this.state;
     var stateRef = stateRefFunc(state);
 

@@ -18603,7 +18603,6 @@ tweenState.Mixin = {
 
   _tweenState: function(stateRefFunc, stateName, config) {
     config = shallowClone(config);
-    console.log('-------');
 
     var state = this._pendingState || this.state;
     var stateRef = stateRefFunc(state);

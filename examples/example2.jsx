@@ -1,9 +1,7 @@
-/** @jsx React.DOM */
-
 var tweenState = require('../');
 var React = require('react');
 
-var App2 = React.createClass({
+var App = React.createClass({
   mixins: [tweenState.Mixin],
 
   getInitialState: function() {
@@ -77,4 +75,4 @@ var App2 = React.createClass({
   }
 });
 
-React.renderComponent(<App2 />, document.querySelector('#content2'));
+module.exports = App;

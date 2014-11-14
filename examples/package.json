@@ -5,16 +5,20 @@
   "main": "index.html",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node_modules/.bin/browserify -t reactify example1.jsx > example1.js & node_modules/.bin/browserify -t reactify example2.jsx > example2.js"
+    "build": "node_modules/.bin/browserify --extension=.jsx index.jsx > out.js"
   },
   "author": "Cheng Lou",
   "license": "BSD",
   "devDependencies": {
-    "browserify": "^4.2.0",
-    "reactify": "^0.13.1"
+    "browserify": "^6.3.2",
+    "reactify": "^0.16.0"
   },
   "dependencies": {
-    "envify": "^1.2.1",
-    "react": "^0.10.0"
+    "react": "^0.12.0"
+  },
+  "browserify": {
+    "transform": [
+      ["reactify"]
+    ]
   }
 }

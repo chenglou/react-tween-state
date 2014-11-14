@@ -1,13 +1,14 @@
 {
   "name": "react-tween-state",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "React animation.",
   "main": "index.js",
   "directories": {
     "examples": "examples"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build-bower": "./node_modules/.bin/browserify -s tweenState index.js > index-bower.js"
   },
   "repository": {
     "type": "git",
@@ -28,5 +29,8 @@
   "bugs": {
     "url": "https://github.com/chenglou/react-tween-state/issues"
   },
-  "homepage": "https://github.com/chenglou/react-tween-state"
+  "homepage": "https://github.com/chenglou/react-tween-state",
+  "devDependencies": {
+    "browserify": "^6.3.2"
+  }
 }

@@ -206,6 +206,10 @@ var App = React.createClass({displayName: 'App',
       transform:
           'translateZ(0) translateX(' +
           this.getTweeningValue(function(state) {return state.blocks;}, '0') +
+          'px)',
+      '-webkit-transform':
+          'translateZ(0) translateX(' +
+          this.getTweeningValue(function(state) {return state.blocks;}, '0') +
           'px)'
     };
 
@@ -213,11 +217,19 @@ var App = React.createClass({displayName: 'App',
       transform:
           'translateZ(0) translateX(' +
           this.getTweeningValue(function(state) {return state.blocks;}, '1') +
+          'px)',
+      '-webkit-transform':
+          'translateZ(0) translateX(' +
+          this.getTweeningValue(function(state) {return state.blocks;}, '1') +
           'px)'
     };
 
     var block3Style = {
       transform:
+          'translateZ(0) translateX(' +
+          this.getTweeningValue(function(state) { return state.blocks;}, '2') +
+          'px)',
+      '-webkit-transform':
           'translateZ(0) translateX(' +
           this.getTweeningValue(function(state) { return state.blocks;}, '2') +
           'px)'

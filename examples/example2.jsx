@@ -41,15 +41,36 @@ var App = React.createClass({
 
   render: function() {
     var block1Style = {
-      left: this.getTweeningValue(function(state) {return state.blocks;}, '0'),
+      transform:
+          'translateZ(0) translateX(' +
+          this.getTweeningValue(function(state) {return state.blocks;}, '0') +
+          'px)',
+      '-webkit-transform':
+          'translateZ(0) translateX(' +
+          this.getTweeningValue(function(state) {return state.blocks;}, '0') +
+          'px)'
     };
 
     var block2Style = {
-      left: this.getTweeningValue(function(state) {return state.blocks;}, '1'),
+      transform:
+          'translateZ(0) translateX(' +
+          this.getTweeningValue(function(state) {return state.blocks;}, '1') +
+          'px)',
+      '-webkit-transform':
+          'translateZ(0) translateX(' +
+          this.getTweeningValue(function(state) {return state.blocks;}, '1') +
+          'px)'
     };
 
     var block3Style = {
-      left: this.getTweeningValue(function(state) {return state.blocks;}, '2'),
+      transform:
+          'translateZ(0) translateX(' +
+          this.getTweeningValue(function(state) { return state.blocks;}, '2') +
+          'px)',
+      '-webkit-transform':
+          'translateZ(0) translateX(' +
+          this.getTweeningValue(function(state) { return state.blocks;}, '2') +
+          'px)'
     };
 
     return (

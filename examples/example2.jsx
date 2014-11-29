@@ -1,6 +1,13 @@
 var tweenState = require('../');
 var React = require('react');
 
+function translateXStyle(val) {
+  return {
+    transform: 'translateZ(0) translateX(' + val + 'px)',
+    WebkitTransform: 'translateZ(0) translateX(' + val + 'px)',
+  };
+}
+
 var App = React.createClass({
   mixins: [tweenState.Mixin],
 
@@ -40,38 +47,15 @@ var App = React.createClass({
   },
 
   render: function() {
-    var block1Style = {
-      transform:
-          'translateZ(0) translateX(' +
-          this.getTweeningValue(function(state) {return state.blocks;}, '0') +
-          'px)',
-      '-webkit-transform':
-          'translateZ(0) translateX(' +
-          this.getTweeningValue(function(state) {return state.blocks;}, '0') +
-          'px)'
-    };
-
-    var block2Style = {
-      transform:
-          'translateZ(0) translateX(' +
-          this.getTweeningValue(function(state) {return state.blocks;}, '1') +
-          'px)',
-      '-webkit-transform':
-          'translateZ(0) translateX(' +
-          this.getTweeningValue(function(state) {return state.blocks;}, '1') +
-          'px)'
-    };
-
-    var block3Style = {
-      transform:
-          'translateZ(0) translateX(' +
-          this.getTweeningValue(function(state) { return state.blocks;}, '2') +
-          'px)',
-      '-webkit-transform':
-          'translateZ(0) translateX(' +
-          this.getTweeningValue(function(state) { return state.blocks;}, '2') +
-          'px)'
-    };
+    var block1Style = translateXStyle(
+      this.getTweeningValue(function(state) {return state.blocks;}, '0')
+    );
+    var block2Style = translateXStyle(
+      this.getTweeningValue(function(state) {return state.blocks;}, '1')
+    );
+    var block3Style = translateXStyle(
+      this.getTweeningValue(function(state) {return state.blocks;}, '2')
+    );
 
     return (
       <div style={{padding: 10}}>

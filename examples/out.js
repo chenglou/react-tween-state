@@ -221,7 +221,9 @@ var App = React.createClass({displayName: 'App',
 
     return (
       React.createElement("div", {style: {padding: 10}}, 
-        React.createElement("div", null, React.createElement("button", {onClick: this.handleTweenClick}, "Tween Me")), 
+        React.createElement("div", null, 
+          React.createElement("button", {onClick: this.handleTweenClick}, "Click Me Repeatedly")
+        ), 
 
         "Dumb Destructive Transition", 
         React.createElement("div", {className: "boundingBoxStyle"}, 

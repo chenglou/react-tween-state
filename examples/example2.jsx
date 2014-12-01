@@ -59,7 +59,9 @@ var App = React.createClass({
 
     return (
       <div style={{padding: 10}}>
-        <div><button onClick={this.handleTweenClick}>Tween Me</button></div>
+        <div>
+          <button onClick={this.handleTweenClick}>Click Me Repeatedly</button>
+        </div>
 
         Dumb Destructive Transition
         <div className="boundingBoxStyle">

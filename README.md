@@ -1,5 +1,7 @@
 # [React](http://facebook.github.io/react/) Tween State
 
+_Psss, wanna see something cool? https://github.com/chenglou/react-state-stream_
+
 The equivalent of React's `this.setState`, but for animated tweening: `this.tweenState`.
 
 [Live demo](https://rawgit.com/chenglou/react-tween-state/master/examples/index.html) and [source](https://github.com/chenglou/react-tween-state/tree/master/examples).

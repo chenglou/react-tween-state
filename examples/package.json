@@ -5,20 +5,15 @@
   "main": "index.html",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node_modules/.bin/browserify --extension=.jsx index.jsx > out.js"
+    "build": "webpack -w --module-bind 'jsx=jsx-loader' index.jsx --output-file out.js"
   },
   "author": "Cheng Lou",
   "license": "BSD",
   "devDependencies": {
-    "browserify": "^6.3.2",
-    "reactify": "^0.16.0"
+    "jsx-loader": "^0.12.2",
+    "webpack": "^1.4.13"
   },
   "dependencies": {
     "react": "^0.12.0"
-  },
-  "browserify": {
-    "transform": [
-      ["reactify"]
-    ]
   }
 }

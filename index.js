@@ -150,7 +150,7 @@ tweenState.Mixin = {
     var now = Date.now();
     state.tweenQueue.forEach(function(item) {
       if (now - item.initTime >= item.config.duration) {
-        item.config.onEnd && item.config.onEnd();
+        item.config.onEnd && setTimeout(item.config.onEnd, 0);
       }
     });
 

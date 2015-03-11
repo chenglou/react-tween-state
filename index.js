@@ -148,15 +148,16 @@ tweenState.Mixin = {
     }
 
     var now = Date.now();
-    state.tweenQueue.forEach(function(item) {
-      if (now - item.initTime >= item.config.duration) {
+    var newTweenQueue = [];
+
+    for (var i = 0; i < state.tweenQueue.length; i++) {
+      var item = state.tweenQueue[i];
+      if (now - item.initTime < item.config.duration) {
+        newTweenQueue.push(item);
+      } else {
         item.config.onEnd && item.config.onEnd();
       }
-    });
-
-    var newTweenQueue = state.tweenQueue.filter(function(item) {
-      return now - item.initTime < item.config.duration;
-    });
+    }
 
     this.setState({
       tweenQueue: newTweenQueue,

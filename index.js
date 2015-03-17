@@ -1,6 +1,6 @@
 'use strict';
 
-var easingTypes = require('./easingTypes');
+var easingTypes = require('tween-functions');
 
 // additive is the new iOS 8 default. In most cases it simulates a physics-
 // looking overshoot behavior (especially with easeInOut. You can test that in
@@ -61,6 +61,8 @@ tweenState.Mixin = {
   _tweenState: function(stateRefFunc, stateName, config) {
     config = shallowClone(config);
 
+    // _pendingState doesn't exist in React 0.13 anymore. No harm leaving it
+    // here for backward compat
     var state = this._pendingState || this.state;
     var stateRef = stateRefFunc(state);
 
@@ -138,10 +140,6 @@ tweenState.Mixin = {
   },
 
   _rafCb: function() {
-    if (!this.isMounted()) {
-      return;
-    }
-
     var state = this.state;
     if (state.tweenQueue.length === 0) {
       return;
@@ -157,6 +155,11 @@ tweenState.Mixin = {
       } else {
         item.config.onEnd && item.config.onEnd();
       }
+    }
+
+    // onEnd might trigger a parent callback that removes this component
+    if (!this.isMounted()) {
+      return;
     }
 
     this.setState({

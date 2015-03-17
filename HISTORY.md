@@ -2,6 +2,11 @@ Legend:
   - [I]: improvement
   - [F]: fix
 
+### 0.0.5 (March 17th 2015)
+**Note**: this is the last release compatible with React < 0.13!
+- [I] Small optimizations.
+- [F] [#24](https://github.com/chenglou/react-tween-state/issues/24): Prevent error when `onEnd` unmounts the component (through parent).
+
 ### 0.0.4 (November 14th 2014)
 - [I] Bower support!
 - [F] The passed-in config object is no longer mutated.

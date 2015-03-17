@@ -32,5 +32,8 @@
   "homepage": "https://github.com/chenglou/react-tween-state",
   "devDependencies": {
     "browserify": "^6.3.2"
+  },
+  "dependencies": {
+    "tween-functions": "^1.0.1"
   }
 }

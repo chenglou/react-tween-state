@@ -48,45 +48,44 @@ tweenState.Mixin = {
   },
 
   _tweenState: function(stateRefFunc, stateName, config) {
-    // _pendingState doesn't exist in React 0.13 anymore. No harm leaving it
-    // here for backward compat
-    var state = this._pendingState || this.state;
-    var stateRef = stateRefFunc(state);
+    this.setState(function(state) {
+      var stateRef = stateRefFunc(state);
 
-    // see the reasoning for these defaults at the top
-    var newConfig = {
-      easing: config.easing || DEFAULT_EASING,
-      duration: config.duration == null ? DEFAULT_DURATION : config.duration,
-      delay: config.delay == null ? DEFAULT_DELAY : config.delay,
-      beginValue: config.beginValue == null ? stateRef[stateName] : config.beginValue,
-      endValue: config.endValue,
-      onEnd: config.onEnd,
-      stackBehavior: config.stackBehavior || DEFAULT_STACK_BEHAVIOR,
-    };
+      // see the reasoning for these defaults at the top
+      var newConfig = {
+        easing: config.easing || DEFAULT_EASING,
+        duration: config.duration == null ? DEFAULT_DURATION : config.duration,
+        delay: config.delay == null ? DEFAULT_DELAY : config.delay,
+        beginValue: config.beginValue == null ? stateRef[stateName] : config.beginValue,
+        endValue: config.endValue,
+        onEnd: config.onEnd,
+        stackBehavior: config.stackBehavior || DEFAULT_STACK_BEHAVIOR,
+      };
 
-    var newTweenQueue = state.tweenQueue;
-    if (newConfig.stackBehavior === tweenState.stackBehavior.DESTRUCTIVE) {
-      newTweenQueue = state.tweenQueue.filter(function(item) {
-        return item.stateName !== stateName || item.stateRefFunc(state) !== stateRef;
+      var newTweenQueue = state.tweenQueue;
+      if (newConfig.stackBehavior === tweenState.stackBehavior.DESTRUCTIVE) {
+        newTweenQueue = state.tweenQueue.filter(function(item) {
+          return item.stateName !== stateName || item.stateRefFunc(state) !== stateRef;
+        });
+      }
+
+      newTweenQueue.push({
+        stateRefFunc: stateRefFunc,
+        stateName: stateName,
+        config: newConfig,
+        initTime: Date.now() + newConfig.delay,
       });
-    }
 
-    newTweenQueue.push({
-      stateRefFunc: stateRefFunc,
-      stateName: stateName,
-      config: newConfig,
-      initTime: Date.now() + newConfig.delay,
+      // tweenState calls setState
+      // sorry for mutating. No idea where in the state the value is
+      stateRef[stateName] = newConfig.endValue;
+      // this will also include the above update
+      if (newTweenQueue.length === 1) {
+        this.startRaf();
+      }
+
+      return {tweenQueue: newTweenQueue};
     });
-
-    // tweenState calls setState
-    // sorry for mutating. No idea where in the state the value is
-    stateRef[stateName] = newConfig.endValue;
-    // this will also include the above update
-    this.setState({tweenQueue: newTweenQueue});
-
-    if (newTweenQueue.length === 1) {
-      this.startRaf();
-    }
   },
 
   getTweeningValue: function(a, b) {

@@ -10,17 +10,6 @@ var DEFAULT_EASING = easingTypes.easeInOutQuad;
 var DEFAULT_DURATION = 300;
 var DEFAULT_DELAY = 0;
 
-function shallowClone(obj) {
-  var ret = {};
-  for (var key in obj) {
-    if (!obj.hasOwnProperty(key)) {
-      continue;
-    }
-    ret[key] = obj[key];
-  }
-  return ret;
-}
-
 // see usage below
 function returnState(state) {
   return state;
@@ -59,22 +48,24 @@ tweenState.Mixin = {
   },
 
   _tweenState: function(stateRefFunc, stateName, config) {
-    config = shallowClone(config);
-
     // _pendingState doesn't exist in React 0.13 anymore. No harm leaving it
     // here for backward compat
     var state = this._pendingState || this.state;
     var stateRef = stateRefFunc(state);
 
     // see the reasoning for these defaults at the top
-    config.stackBehavior = config.stackBehavior || DEFAULT_STACK_BEHAVIOR;
-    config.easing = config.easing || DEFAULT_EASING;
-    config.duration = config.duration == null ? DEFAULT_DURATION : config.duration;
-    config.beginValue = config.beginValue == null ? stateRef[stateName] : config.beginValue;
-    config.delay = config.delay == null ? DEFAULT_DELAY : config.delay;
+    var newConfig = {
+      easing: config.easing || DEFAULT_EASING,
+      duration: config.duration == null ? DEFAULT_DURATION : config.duration,
+      delay: config.delay == null ? DEFAULT_DELAY : config.delay,
+      beginValue: config.beginValue == null ? stateRef[stateName] : config.beginValue,
+      endValue: config.endValue,
+      onEnd: config.onEnd,
+      stackBehavior: config.stackBehavior || DEFAULT_STACK_BEHAVIOR,
+    };
 
     var newTweenQueue = state.tweenQueue;
-    if (config.stackBehavior === tweenState.stackBehavior.DESTRUCTIVE) {
+    if (newConfig.stackBehavior === tweenState.stackBehavior.DESTRUCTIVE) {
       newTweenQueue = state.tweenQueue.filter(function(item) {
         return item.stateName !== stateName || item.stateRefFunc(state) !== stateRef;
       });
@@ -83,13 +74,13 @@ tweenState.Mixin = {
     newTweenQueue.push({
       stateRefFunc: stateRefFunc,
       stateName: stateName,
-      config: config,
-      initTime: Date.now() + config.delay,
+      config: newConfig,
+      initTime: Date.now() + newConfig.delay,
     });
 
     // tweenState calls setState
     // sorry for mutating. No idea where in the state the value is
-    stateRef[stateName] = config.endValue;
+    stateRef[stateName] = newConfig.endValue;
     // this will also include the above update
     this.setState({tweenQueue: newTweenQueue});
 

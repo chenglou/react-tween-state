@@ -10,11 +10,6 @@ var DEFAULT_EASING = easingTypes.easeInOutQuad;
 var DEFAULT_DURATION = 300;
 var DEFAULT_DELAY = 0;
 
-// see usage below
-function returnState(state) {
-  return state;
-}
-
 var tweenState = {
   easingTypes: easingTypes,
   stackBehavior: {
@@ -30,27 +25,20 @@ tweenState.Mixin = {
     };
   },
 
-  tweenState: function(a, b, c) {
-    // tweenState(stateNameString, config)
-    // tweenState(stateRefFunc, stateNameString, config)
-
-    // passing a state name string and retrieving it later from this.state
-    // doesn't work for values in deeply nested collections (unless you design
-    // the API to be able to parse 'this.state.my.nested[1]', meh). Passing a
-    // direct, resolved reference wouldn't work either, since that reference
-    // points to the old state rather than the subsequent new ones.
-    if (typeof a === 'string') {
-      c = b;
-      b = a;
-      a = returnState;
+  tweenState: function(path, config) {
+    if (typeof path === 'string') {
+      path = [path];
     }
-    this._tweenState(a, b, c);
+    this._tweenState(path, config);
   },
 
-  _tweenState: function(stateRefFunc, stateName, config) {
+  _tweenState: function(path, config) {
     this.setState(function(state) {
-      var stateRef = stateRefFunc(state);
-
+      var stateRef = state;
+      for (var i = 0; i < path.length - 1; i++) {
+        stateRef = stateRef[path[i]];
+      }
+      var stateName = path[path.length - 1];
       // see the reasoning for these defaults at the top
       var newConfig = {
         easing: config.easing || DEFAULT_EASING,
@@ -62,51 +50,54 @@ tweenState.Mixin = {
         stackBehavior: config.stackBehavior || DEFAULT_STACK_BEHAVIOR,
       };
 
+      var pathHash = path.join('|');
       var newTweenQueue = state.tweenQueue;
       if (newConfig.stackBehavior === tweenState.stackBehavior.DESTRUCTIVE) {
         newTweenQueue = state.tweenQueue.filter(function(item) {
-          return item.stateName !== stateName || item.stateRefFunc(state) !== stateRef;
+          return item.pathHash !== pathHash;
         });
       }
 
       newTweenQueue.push({
-        stateRefFunc: stateRefFunc,
-        stateName: stateName,
+        path: path,
+        pathHash: pathHash,
         config: newConfig,
         initTime: Date.now() + newConfig.delay,
       });
 
-      // tweenState calls setState
-      // sorry for mutating. No idea where in the state the value is
+      // sorry for mutating. For perf reasons we don't want to deep clone.
+      // guys, can we please all start using persistent collections so that
+      // we can stop worrying about nonesense like this
       stateRef[stateName] = newConfig.endValue;
-      // this will also include the above update
       if (newTweenQueue.length === 1) {
         this.startRaf();
       }
 
+      // this will also include the above mutated update
       return {tweenQueue: newTweenQueue};
     });
   },
 
-  getTweeningValue: function(a, b) {
-    // see tweenState API
-    if (typeof a === 'string') {
-      b = a;
-      a = returnState;
+  getTweeningValue: function(path) {
+    if (typeof path === 'string') {
+      path = [path];
     }
-    return this._getTweeningValue(a, b);
+    return this._getTweeningValue(path);
   },
 
-  _getTweeningValue: function(stateRefFunc, stateName) {
+  _getTweeningValue: function(path) {
     var state = this.state;
-    var stateRef = stateRefFunc(state);
-    var tweeningValue = stateRef[stateName];
+
+    var tweeningValue = state;
+    for (var j = 0; j < path.length; j++) {
+      tweeningValue = tweeningValue[path[j]];
+    }
     var now = Date.now();
 
+    var pathHash = path.join('|');
     for (var i = 0; i < state.tweenQueue.length; i++) {
       var item = state.tweenQueue[i];
-      var itemStateRef = item.stateRefFunc(state);
-      if (item.stateName !== stateName || itemStateRef !== stateRef) {
+      if (item.pathHash !== pathHash) {
         continue;
       }
 

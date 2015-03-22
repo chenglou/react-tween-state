@@ -18,25 +18,26 @@ var App = React.createClass({
   },
 
   handleTweenClick: function() {
-    // If you want to update nested values in your state, use this API instead.
+    // If you want to update nested values in your state, pass an array path
+    // instead of a string
 
     // dumb destructive animation
-    this.tweenState(function(state) {return state.blocks;}, '0', {
+    this.tweenState(['blocks', 0], {
       easing: tweenState.easingTypes.easeInOutQuad,
       stackBehavior: tweenState.stackBehavior.DESTRUCTIVE,
       duration: 1000,
       endValue: this.state.blocks[0] === 0 ? 400 : 0,
     });
     // slightly smarter destructive animation. Current CSS default
-    this.tweenState(function(state) {return state.blocks;}, '1', {
+    this.tweenState(['blocks', 1], {
       easing: tweenState.easingTypes.easeInOutQuad,
       stackBehavior: tweenState.stackBehavior.DESTRUCTIVE,
       duration: 1000,
-      beginValue: this.getTweeningValue(function(state) {return state.blocks;}, '1'),
+      beginValue: this.getTweeningValue(['blocks', 1]),
       endValue: this.state.blocks[1] === 0 ? 400 : 0,
     });
     // optimal default
-    this.tweenState(function(state) {return state.blocks;}, '2', {
+    this.tweenState(['blocks', 2], {
       easing: tweenState.easingTypes.easeInOutQuad,
       stackBehavior: tweenState.stackBehavior.ADDITIVE,
       duration: 1000,
@@ -47,15 +48,9 @@ var App = React.createClass({
   },
 
   render: function() {
-    var block1Style = translateXStyle(
-      this.getTweeningValue(function(state) {return state.blocks;}, '0')
-    );
-    var block2Style = translateXStyle(
-      this.getTweeningValue(function(state) {return state.blocks;}, '1')
-    );
-    var block3Style = translateXStyle(
-      this.getTweeningValue(function(state) {return state.blocks;}, '2')
-    );
+    var block1Style = translateXStyle(this.getTweeningValue(['blocks', 0]));
+    var block2Style = translateXStyle(this.getTweeningValue(['blocks', 1]));
+    var block3Style = translateXStyle(this.getTweeningValue(['blocks', 2]));
 
     return (
       <div style={{padding: 10}}>

@@ -26,6 +26,10 @@ var tweenState = {
 tweenState.Mixin = {
   tweenQueue: [],
 
+  componentWillMount: function() {
+    this.tweenQueue = [];
+  },
+
   tweenState: function(a, b, c) {
     // tweenState(stateNameString, config)
     // tweenState(stateRefFunc, stateNameString, config)
@@ -44,8 +48,6 @@ tweenState.Mixin = {
   },
 
   _tweenState: function(stateRefFunc, stateName, config) {
-    // _pendingState doesn't exist in React 0.13 anymore. No harm leaving it
-    // here for backward compat
     var stateRef = stateRefFunc(this.state);
 
     // see the reasoning for these defaults at the top

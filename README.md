@@ -73,7 +73,7 @@ This immediately calls `setState` on your state name under the hood, and also cr
 }
 ```
 
-  - `easing` (default: `tweenState.easingTypes.easeInOutQuad`): the interpolation function used. react-tween-state provides [frequently used interpolation](https://github.com/chenglou/react-tween-state/blob/master/easingTypes.js) (all exposed inside `tweenState.easingTypes`). In case you ever create your own, the function signature is: `(currentTime: Number, beginValue: Number, endValue: Number, totalDuration: Number): Number`.
+  - `easing` (default: `tweenState.easingTypes.easeInOutQuad`): the interpolation function used. react-tween-state provides [frequently used interpolation](https://github.com/chenglou/react-tween-state/blob/master/easingTypes.js) (all exposed inside `tweenState.easingTypes`). In case you ever create your own, the function signature is: `(currentTime: Number, beginValue: Number, endValue: Number, totalDuration: Number)`.
   - `duration` (default: `300`).
   - `delay` (default: `0`). *
   - `beginValue` (default: the current value the state being tweened, `this.state[stateNameString]`).

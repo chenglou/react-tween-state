@@ -24,10 +24,10 @@ var tweenState = {
 };
 
 tweenState.Mixin = {
-  getInitialState: function() {
-    return {
-      tweenQueue: [],
-    };
+  tweenQueue: [],
+
+  componentWillMount: function() {
+    this.tweenQueue = [];
   },
 
   tweenState: function(a, b, c) {
@@ -48,44 +48,43 @@ tweenState.Mixin = {
   },
 
   _tweenState: function(stateRefFunc, stateName, config) {
-    this.setState(function(state) {
-      var stateRef = stateRefFunc(state);
+    var stateRef = stateRefFunc(this.state);
 
-      // see the reasoning for these defaults at the top
-      var newConfig = {
-        easing: config.easing || DEFAULT_EASING,
-        duration: config.duration == null ? DEFAULT_DURATION : config.duration,
-        delay: config.delay == null ? DEFAULT_DELAY : config.delay,
-        beginValue: config.beginValue == null ? stateRef[stateName] : config.beginValue,
-        endValue: config.endValue,
-        onEnd: config.onEnd,
-        stackBehavior: config.stackBehavior || DEFAULT_STACK_BEHAVIOR,
-      };
+    // see the reasoning for these defaults at the top
+    var newConfig = {
+      easing: config.easing || DEFAULT_EASING,
+      duration: config.duration == null ? DEFAULT_DURATION : config.duration,
+      delay: config.delay == null ? DEFAULT_DELAY : config.delay,
+      beginValue: config.beginValue == null ? stateRef[stateName] : config.beginValue,
+      endValue: config.endValue,
+      onEnd: config.onEnd,
+      stackBehavior: config.stackBehavior || DEFAULT_STACK_BEHAVIOR,
+    };
 
-      var newTweenQueue = state.tweenQueue;
-      if (newConfig.stackBehavior === tweenState.stackBehavior.DESTRUCTIVE) {
-        newTweenQueue = state.tweenQueue.filter(function(item) {
-          return item.stateName !== stateName || item.stateRefFunc(state) !== stateRef;
-        });
-      }
-
-      newTweenQueue.push({
-        stateRefFunc: stateRefFunc,
-        stateName: stateName,
-        config: newConfig,
-        initTime: Date.now() + newConfig.delay,
+    var newTweenQueue = this.tweenQueue;
+    if (newConfig.stackBehavior === tweenState.stackBehavior.DESTRUCTIVE) {
+      newTweenQueue = this.tweenQueue.filter(function(item) {
+        return item.stateName !== stateName || item.stateRefFunc(state) !== stateRef;
       });
+    }
 
-      // tweenState calls setState
-      // sorry for mutating. No idea where in the state the value is
-      stateRef[stateName] = newConfig.endValue;
-      // this will also include the above update
-      if (newTweenQueue.length === 1) {
-        this.startRaf();
-      }
-
-      return {tweenQueue: newTweenQueue};
+    newTweenQueue.push({
+      stateRefFunc: stateRefFunc,
+      stateName: stateName,
+      config: newConfig,
+      initTime: Date.now() + newConfig.delay,
     });
+
+    // tweenState calls setState
+    // sorry for mutating. No idea where in the state the value is
+    stateRef[stateName] = newConfig.endValue;
+    // this will also include the above update
+    this.tweenQueue = newTweenQueue;
+    this.forceUpdate();
+
+    if (newTweenQueue.length === 1) {
+      this.startRaf();
+    }
   },
 
   getTweeningValue: function(a, b) {
@@ -103,8 +102,8 @@ tweenState.Mixin = {
     var tweeningValue = stateRef[stateName];
     var now = Date.now();
 
-    for (var i = 0; i < state.tweenQueue.length; i++) {
-      var item = state.tweenQueue[i];
+    for (var i = 0; i < this.tweenQueue.length; i++) {
+      var item = this.tweenQueue[i];
       var itemStateRef = item.stateRefFunc(state);
       if (item.stateName !== stateName || itemStateRef !== stateRef) {
         continue;
@@ -130,16 +129,15 @@ tweenState.Mixin = {
   },
 
   _rafCb: function() {
-    var state = this.state;
-    if (state.tweenQueue.length === 0) {
+    if (this.tweenQueue.length === 0) {
       return;
     }
 
     var now = Date.now();
     var newTweenQueue = [];
 
-    for (var i = 0; i < state.tweenQueue.length; i++) {
-      var item = state.tweenQueue[i];
+    for (var i = 0; i < this.tweenQueue.length; i++) {
+      var item = this.tweenQueue[i];
       if (now - item.initTime < item.config.duration) {
         newTweenQueue.push(item);
       } else {
@@ -147,14 +145,8 @@ tweenState.Mixin = {
       }
     }
 
-    // onEnd might trigger a parent callback that removes this component
-    if (!this.isMounted()) {
-      return;
-    }
-
-    this.setState({
-      tweenQueue: newTweenQueue,
-    });
+    this.tweenQueue = newTweenQueue;
+    this.forceUpdate();
 
     requestAnimationFrame(this._rafCb);
   },

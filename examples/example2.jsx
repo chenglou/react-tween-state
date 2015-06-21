@@ -1,14 +1,16 @@
-var tweenState = require('../');
-var React = require('react');
+'use strict';
+
+import tweenState, {easingTypes, stackBehavior} from '../';
+import React from 'react';
 
 function translateXStyle(val) {
   return {
-    transform: 'translateZ(0) translateX(' + val + 'px)',
-    WebkitTransform: 'translateZ(0) translateX(' + val + 'px)',
+    transform: `translateZ(0) translateX(${val}px)`,
+    WebkitTransform: `translateZ(0) translateX(${val}px)1`,
   };
 }
 
-var App = React.createClass({
+export default React.createClass({
   mixins: [tweenState.Mixin],
 
   getInitialState: function() {
@@ -23,23 +25,23 @@ var App = React.createClass({
 
     // dumb destructive animation
     this.tweenState(['blocks', 0], {
-      easing: tweenState.easingTypes.easeInOutQuad,
-      stackBehavior: tweenState.stackBehavior.DESTRUCTIVE,
+      easing: easingTypes.easeInOutQuad,
+      stackBehavior: stackBehavior.DESTRUCTIVE,
       duration: 1000,
       endValue: this.state.blocks[0] === 0 ? 400 : 0,
     });
     // slightly smarter destructive animation. Current CSS default
     this.tweenState(['blocks', 1], {
-      easing: tweenState.easingTypes.easeInOutQuad,
-      stackBehavior: tweenState.stackBehavior.DESTRUCTIVE,
+      easing: easingTypes.easeInOutQuad,
+      stackBehavior: stackBehavior.DESTRUCTIVE,
       duration: 1000,
       beginValue: this.getTweeningValue(['blocks', 1]),
       endValue: this.state.blocks[1] === 0 ? 400 : 0,
     });
     // optimal default
     this.tweenState(['blocks', 2], {
-      easing: tweenState.easingTypes.easeInOutQuad,
-      stackBehavior: tweenState.stackBehavior.ADDITIVE,
+      easing: easingTypes.easeInOutQuad,
+      stackBehavior: stackBehavior.ADDITIVE,
       duration: 1000,
       endValue: this.state.blocks[2] === 0 ? 400 : 0,
     });
@@ -76,5 +78,3 @@ var App = React.createClass({
     );
   }
 });
-
-module.exports = App;

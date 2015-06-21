@@ -1,16 +1,16 @@
 'use strict';
 
-var easingTypes = require('tween-functions');
+import easingTypes, {easeInOutQuad} from 'tween-functions';
 
 // additive is the new iOS 8 default. In most cases it simulates a physics-
 // looking overshoot behavior (especially with easeInOut. You can test that in
 // the example
-var DEFAULT_STACK_BEHAVIOR = 'ADDITIVE';
-var DEFAULT_EASING = easingTypes.easeInOutQuad;
-var DEFAULT_DURATION = 300;
-var DEFAULT_DELAY = 0;
+let DEFAULT_STACK_BEHAVIOR = 'ADDITIVE';
+let DEFAULT_EASING = easeInOutQuad;
+let DEFAULT_DURATION = 300;
+let DEFAULT_DELAY = 0;
 
-var tweenState = {
+export let tweenState = {
   easingTypes: easingTypes,
   stackBehavior: {
     ADDITIVE: 'ADDITIVE',
@@ -25,38 +25,36 @@ tweenState.Mixin = {
     };
   },
 
-  tweenState: function(path, config) {
-    this.setState(function(state) {
-      var cursor = state;
-      var stateName;
+  tweenState: function(path, {easing, duration, delay, beginValue, endValue, onEnd, stackBehavior}) {
+    this.setState(state => {
+      let cursor = state;
+      let stateName;
       // see comment below on pash hash
-      var pathHash;
+      let pathHash;
       if (typeof path === 'string') {
         stateName = path;
         pathHash = path;
       } else {
-        for (var i = 0; i < path.length - 1; i++) {
+        for (let i = 0; i < path.length - 1; i++) {
           cursor = cursor[path[i]];
         }
         stateName = path[path.length - 1];
         pathHash = path.join('|');
       }
       // see the reasoning for these defaults at the top of file
-      var newConfig = {
-        easing: config.easing || DEFAULT_EASING,
-        duration: config.duration == null ? DEFAULT_DURATION : config.duration,
-        delay: config.delay == null ? DEFAULT_DELAY : config.delay,
-        beginValue: config.beginValue == null ? cursor[stateName] : config.beginValue,
-        endValue: config.endValue,
-        onEnd: config.onEnd,
-        stackBehavior: config.stackBehavior || DEFAULT_STACK_BEHAVIOR,
+      let newConfig = {
+        easing: easing || DEFAULT_EASING,
+        duration: duration == null ? DEFAULT_DURATION : duration,
+        delay: delay == null ? DEFAULT_DELAY : delay,
+        beginValue: beginValue == null ? cursor[stateName] : beginValue,
+        endValue: endValue,
+        onEnd: onEnd,
+        stackBehavior: stackBehavior || DEFAULT_STACK_BEHAVIOR,
       };
 
-      var newTweenQueue = state.tweenQueue;
+      let newTweenQueue = state.tweenQueue;
       if (newConfig.stackBehavior === tweenState.stackBehavior.DESTRUCTIVE) {
-        newTweenQueue = state.tweenQueue.filter(function(item) {
-          return item.pathHash !== pathHash;
-        });
+        newTweenQueue = state.tweenQueue.filter(item => item.pathHash !== pathHash);
       }
 
       // we store path hash, so that during value retrieval we can use hash
@@ -82,39 +80,39 @@ tweenState.Mixin = {
   },
 
   getTweeningValue: function(path) {
-    var state = this.state;
+    let state = this.state;
 
-    var tweeningValue;
-    var pathHash;
+    let tweeningValue;
+    let pathHash;
     if (typeof path === 'string') {
       tweeningValue = state[path];
       pathHash = path;
     } else {
       tweeningValue = state;
-      for (var j = 0; j < path.length; j++) {
-        tweeningValue = tweeningValue[path[j]];
+      for (let i = 0; i < path.length; i++) {
+        tweeningValue = tweeningValue[path[i]];
       }
       pathHash = path.join('|');
     }
-    var now = Date.now();
+    let now = Date.now();
 
-    for (var i = 0; i < state.tweenQueue.length; i++) {
-      var item = state.tweenQueue[i];
+    for (let i = 0; i < state.tweenQueue.length; i++) {
+      let item = state.tweenQueue[i];
       if (item.pathHash !== pathHash) {
         continue;
       }
 
-      var progressTime = now - item.initTime > item.config.duration ?
+      let progressTime = now - item.initTime > item.config.duration ?
         item.config.duration :
         Math.max(0, now - item.initTime);
       // `now - item.initTime` can be negative if initTime is scheduled in the
       // future by a delay. In this case we take 0
 
-      var contrib = -item.config.endValue + item.config.easing(
+      let contrib = -item.config.endValue + item.config.easing(
         progressTime,
         item.config.beginValue,
         item.config.endValue,
-        item.config.duration
+        item.config.duration,
         // TODO: some funcs accept a 5th param
       );
       tweeningValue += contrib;
@@ -124,16 +122,16 @@ tweenState.Mixin = {
   },
 
   _rafCb: function() {
-    var state = this.state;
+    let state = this.state;
     if (state.tweenQueue.length === 0) {
       return;
     }
 
-    var now = Date.now();
-    var newTweenQueue = [];
+    let now = Date.now();
+    let newTweenQueue = [];
 
-    for (var i = 0; i < state.tweenQueue.length; i++) {
-      var item = state.tweenQueue[i];
+    for (let i = 0; i < state.tweenQueue.length; i++) {
+      let item = state.tweenQueue[i];
       if (now - item.initTime < item.config.duration) {
         newTweenQueue.push(item);
       } else {

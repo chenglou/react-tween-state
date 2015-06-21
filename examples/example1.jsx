@@ -1,7 +1,9 @@
-var tweenState = require('../');
-var React = require('react');
+'use strict';
 
-var App = React.createClass({
+import tweenState from '../';
+import React from 'react';
+
+export default React.createClass({
   mixins: [tweenState.Mixin],
 
   getInitialState: function() {
@@ -29,5 +31,3 @@ var App = React.createClass({
     );
   }
 });
-
-module.exports = App;

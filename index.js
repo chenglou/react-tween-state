@@ -26,31 +26,32 @@ tweenState.Mixin = {
   },
 
   tweenState: function(path, config) {
-    if (typeof path === 'string') {
-      path = [path];
-    }
-    this._tweenState(path, config);
-  },
-
-  _tweenState: function(path, config) {
     this.setState(function(state) {
-      var stateRef = state;
-      for (var i = 0; i < path.length - 1; i++) {
-        stateRef = stateRef[path[i]];
+      var cursor = state;
+      var stateName;
+      // see comment below on pash hash
+      var pathHash;
+      if (typeof path === 'string') {
+        stateName = path;
+        pathHash = path;
+      } else {
+        for (var i = 0; i < path.length - 1; i++) {
+          cursor = cursor[path[i]];
+        }
+        stateName = path[path.length - 1];
+        pathHash = path.join('|');
       }
-      var stateName = path[path.length - 1];
-      // see the reasoning for these defaults at the top
+      // see the reasoning for these defaults at the top of file
       var newConfig = {
         easing: config.easing || DEFAULT_EASING,
         duration: config.duration == null ? DEFAULT_DURATION : config.duration,
         delay: config.delay == null ? DEFAULT_DELAY : config.delay,
-        beginValue: config.beginValue == null ? stateRef[stateName] : config.beginValue,
+        beginValue: config.beginValue == null ? cursor[stateName] : config.beginValue,
         endValue: config.endValue,
         onEnd: config.onEnd,
         stackBehavior: config.stackBehavior || DEFAULT_STACK_BEHAVIOR,
       };
 
-      var pathHash = path.join('|');
       var newTweenQueue = state.tweenQueue;
       if (newConfig.stackBehavior === tweenState.stackBehavior.DESTRUCTIVE) {
         newTweenQueue = state.tweenQueue.filter(function(item) {
@@ -58,8 +59,10 @@ tweenState.Mixin = {
         });
       }
 
+      // we store path hash, so that during value retrieval we can use hash
+      // comparison to find the path. See the kind of shitty thing you have to
+      // do when you don't have value comparison for collections?
       newTweenQueue.push({
-        path: path,
         pathHash: pathHash,
         config: newConfig,
         initTime: Date.now() + newConfig.delay,
@@ -68,7 +71,7 @@ tweenState.Mixin = {
       // sorry for mutating. For perf reasons we don't want to deep clone.
       // guys, can we please all start using persistent collections so that
       // we can stop worrying about nonesense like this
-      stateRef[stateName] = newConfig.endValue;
+      cursor[stateName] = newConfig.endValue;
       if (newTweenQueue.length === 1) {
         this.startRaf();
       }
@@ -79,22 +82,22 @@ tweenState.Mixin = {
   },
 
   getTweeningValue: function(path) {
-    if (typeof path === 'string') {
-      path = [path];
-    }
-    return this._getTweeningValue(path);
-  },
-
-  _getTweeningValue: function(path) {
     var state = this.state;
 
-    var tweeningValue = state;
-    for (var j = 0; j < path.length; j++) {
-      tweeningValue = tweeningValue[path[j]];
+    var tweeningValue;
+    var pathHash;
+    if (typeof path === 'string') {
+      tweeningValue = state[path];
+      pathHash = path;
+    } else {
+      tweeningValue = state;
+      for (var j = 0; j < path.length; j++) {
+        tweeningValue = tweeningValue[path[j]];
+      }
+      pathHash = path.join('|');
     }
     var now = Date.now();
 
-    var pathHash = path.join('|');
     for (var i = 0; i < state.tweenQueue.length; i++) {
       var item = state.tweenQueue[i];
       if (item.pathHash !== pathHash) {

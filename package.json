@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build-bower": "./node_modules/.bin/browserify -s tweenState index.js > index-bower.js"
+    "build-bower": "./node_modules/.bin/browserify -s tweenState index.js > index-bower.js",
+    "build": "webpack -w -d"
   },
   "repository": {
     "type": "git",
@@ -31,7 +32,11 @@
   },
   "homepage": "https://github.com/chenglou/react-tween-state",
   "devDependencies": {
-    "browserify": "^6.3.2"
+    "babel-core": "^5.6.1",
+    "babel-loader": "^5.1.4",
+    "node-libs-browser": "^0.5.2",
+    "react": "^0.13.3",
+    "webpack": "^1.9.11"
   },
   "dependencies": {
     "tween-functions": "^1.0.1"

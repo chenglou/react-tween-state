@@ -7,6 +7,7 @@ module.exports = {
   output: {
     filename: './[name]/index.js',
     libraryTarget: 'umd',
+    library: 'tweenState',
   },
   module: {
     loaders: [

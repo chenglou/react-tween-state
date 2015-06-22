@@ -47,8 +47,6 @@ var App = React.createClass({
 });
 ```
 
-### General
-
 The library exports `Mixin`, `easingTypes` and `stackBehavior`.
 
 #### `this.tweenState(path: String | Array<String>, configuration: Object)`

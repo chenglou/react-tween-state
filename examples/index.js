@@ -3,10 +3,10 @@
 		module.exports = factory();
 	else if(typeof define === 'function' && define.amd)
 		define(factory);
-	else {
-		var a = factory();
-		for(var i in a) (typeof exports === 'object' ? exports : root)[i] = a[i];
-	}
+	else if(typeof exports === 'object')
+		exports["tweenState"] = factory();
+	else
+		root["tweenState"] = factory();
 })(this, function() {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
@@ -134,10 +134,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	'use strict';
 	
 	(function webpackUniversalModuleDefinition(root, factory) {
-		if (true) module.exports = factory();else if (typeof define === 'function' && define.amd) define(factory);else {
-			var a = factory();
-			for (var i in a) (typeof exports === 'object' ? exports : root)[i] = a[i];
-		}
+		if (true) module.exports = factory();else if (typeof define === 'function' && define.amd) define(factory);else if (typeof exports === 'object') exports['tweenState'] = factory();else root['tweenState'] = factory();
 	})(undefined, function () {
 		return ( /******/(function (modules) {
 				// webpackBootstrap

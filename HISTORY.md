@@ -2,7 +2,7 @@ Legend:
   - [I]: improvement
   - [F]: fix
 
-## 0.1.0 (June 21th 2015)
+## 0.1.1 (June 21th 2015)
 **Note**: this version is not compatible with React < 0.13.
 - [I] Better API! See the [updated examples](https://github.com/chenglou/react-tween-state/tree/master/examples).
 - [I] Library converted to ES7 with Babel.

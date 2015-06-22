@@ -6,7 +6,7 @@ import React from 'react';
 function translateXStyle(val) {
   return {
     transform: `translateZ(0) translateX(${val}px)`,
-    WebkitTransform: `translateZ(0) translateX(${val}px)1`,
+    WebkitTransform: `translateZ(0) translateX(${val}px)`,
   };
 }
 

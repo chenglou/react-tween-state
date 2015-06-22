@@ -2,13 +2,12 @@
   "name": "react-tween-state",
   "version": "0.0.5",
   "description": "React animation.",
-  "main": "index.js",
+  "main": "lib/index.js",
   "directories": {
     "examples": "examples"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build-bower": "./node_modules/.bin/browserify -s tweenState index.js > index-bower.js",
     "build": "webpack -w -d"
   },
   "repository": {

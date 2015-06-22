@@ -1,5 +1,3 @@
-var webpack = require('webpack');
-
 module.exports = {
   entry: {
     // https://github.com/webpack/webpack/issues/300
@@ -8,14 +6,18 @@ module.exports = {
   },
   output: {
     filename: './[name]/index.js',
+    libraryTarget: 'umd',
   },
   module: {
     loaders: [
-      {test: /\.jsx?$/, exclude: /build|node_modules/, loader: 'babel-loader?stage=0'},
+      {
+        test: /\.jsx?$/,
+        exclude: /node_modules/,
+        loader: 'babel?stage=0',
+      },
     ]
   },
   resolve: {
     extensions: ['', '.js', '.jsx']
   }
 };
-

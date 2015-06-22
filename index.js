@@ -10,22 +10,19 @@ let DEFAULT_EASING = easeInOutQuad;
 let DEFAULT_DURATION = 300;
 let DEFAULT_DELAY = 0;
 
-export let tweenState = {
-  easingTypes: easingTypes,
-  stackBehavior: {
-    ADDITIVE: 'ADDITIVE',
-    DESTRUCTIVE: 'DESTRUCTIVE',
-  }
+export {easingTypes};
+export let stackBehavior = {
+  ADDITIVE: 'ADDITIVE',
+  DESTRUCTIVE: 'DESTRUCTIVE',
 };
-
-tweenState.Mixin = {
+export let Mixin = {
   getInitialState: function() {
     return {
       tweenQueue: [],
     };
   },
 
-  tweenState: function(path, {easing, duration, delay, beginValue, endValue, onEnd, stackBehavior}) {
+  tweenState: function(path, {easing, duration, delay, beginValue, endValue, onEnd, stackBehavior: configSB}) {
     this.setState(state => {
       let cursor = state;
       let stateName;
@@ -49,11 +46,11 @@ tweenState.Mixin = {
         beginValue: beginValue == null ? cursor[stateName] : beginValue,
         endValue: endValue,
         onEnd: onEnd,
-        stackBehavior: stackBehavior || DEFAULT_STACK_BEHAVIOR,
+        stackBehavior: configSB || DEFAULT_STACK_BEHAVIOR,
       };
 
       let newTweenQueue = state.tweenQueue;
-      if (newConfig.stackBehavior === tweenState.stackBehavior.DESTRUCTIVE) {
+      if (newConfig.stackBehavior === stackBehavior.DESTRUCTIVE) {
         newTweenQueue = state.tweenQueue.filter(item => item.pathHash !== pathHash);
       }
 
@@ -154,7 +151,4 @@ tweenState.Mixin = {
   startRaf: function() {
     requestAnimationFrame(this._rafCb);
   },
-
 };
-
-module.exports = tweenState;

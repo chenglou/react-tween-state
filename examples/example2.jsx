@@ -1,6 +1,6 @@
 'use strict';
 
-import tweenState, {easingTypes, stackBehavior} from '../';
+import {easingTypes, stackBehavior, Mixin} from '../';
 import React from 'react';
 
 function translateXStyle(val) {
@@ -11,7 +11,7 @@ function translateXStyle(val) {
 }
 
 export default React.createClass({
-  mixins: [tweenState.Mixin],
+  mixins: [Mixin],
 
   getInitialState: function() {
     return {

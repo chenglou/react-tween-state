@@ -1,5 +1,3 @@
-'use strict';
-
 import {easingTypes, stackBehavior, Mixin} from '../';
 import React from 'react';
 

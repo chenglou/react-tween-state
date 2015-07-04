@@ -81,11 +81,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 	
-	function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj['default'] = obj; return newObj; } }
-	
 	var _ = __webpack_require__(/*! ../ */ 2);
 	
-	var tweenState = _interopRequireWildcard(_);
+	var _2 = _interopRequireDefault(_);
 	
 	var _react = __webpack_require__(/*! react */ 3);
 	
@@ -94,7 +92,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	exports['default'] = _react2['default'].createClass({
 	  displayName: 'example1',
 	
-	  mixins: [tweenState.Mixin],
+	  mixins: [_2['default'].Mixin],
 	
 	  getInitialState: function getInitialState() {
 	    return { counter: 0 };
@@ -220,12 +218,10 @@ return /******/ (function(modules) { // webpackBootstrap
 					var DEFAULT_DURATION = 300;
 					var DEFAULT_DELAY = 0;
 	
-					exports.easingTypes = _tweenFunctions2['default'];
 					var stackBehavior = {
 						ADDITIVE: 'ADDITIVE',
 						DESTRUCTIVE: 'DESTRUCTIVE'
 					};
-					exports.stackBehavior = stackBehavior;
 					var Mixin = {
 						getInitialState: function getInitialState() {
 							return {
@@ -367,7 +363,13 @@ return /******/ (function(modules) { // webpackBootstrap
 							requestAnimationFrame(this._rafCb);
 						}
 					};
-					exports.Mixin = Mixin;
+	
+					exports['default'] = {
+						Mixin: Mixin,
+						easingTypes: _tweenFunctions2['default'],
+						stackBehavior: stackBehavior
+					};
+					module.exports = exports['default'];
 	
 					// TODO: some funcs accept a 5th param
 	

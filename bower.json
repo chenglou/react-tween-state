@@ -1,7 +1,7 @@
 {
   "name": "react-tween-state",
   "main": "lib/index.js",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "homepage": "https://github.com/chenglou/react-tween-state",
   "authors": [
     "Cheng Lou <chenglou92@gmail.com>"

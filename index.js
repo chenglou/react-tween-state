@@ -1,5 +1,3 @@
-'use strict';
-
 import easingTypes, {easeInOutQuad} from 'tween-functions';
 
 // additive is the new iOS 8 default. In most cases it simulates a physics-
@@ -10,12 +8,11 @@ let DEFAULT_EASING = easeInOutQuad;
 let DEFAULT_DURATION = 300;
 let DEFAULT_DELAY = 0;
 
-export {easingTypes};
-export let stackBehavior = {
+let stackBehavior = {
   ADDITIVE: 'ADDITIVE',
   DESTRUCTIVE: 'DESTRUCTIVE',
 };
-export let Mixin = {
+let Mixin = {
   getInitialState: function() {
     return {
       tweenQueue: [],
@@ -151,4 +148,10 @@ export let Mixin = {
   startRaf: function() {
     requestAnimationFrame(this._rafCb);
   },
+};
+
+export default {
+  Mixin,
+  easingTypes,
+  stackBehavior,
 };

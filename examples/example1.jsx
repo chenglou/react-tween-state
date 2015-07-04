@@ -1,6 +1,4 @@
-'use strict';
-
-import * as tweenState from '../';
+import tweenState from '../';
 import React from 'react';
 
 export default React.createClass({

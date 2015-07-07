@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack -w -d"
+    "build": "webpack -p",
+    "start": "webpack -w -d"
   },
   "repository": {
     "type": "git",

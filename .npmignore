@@ -1,5 +1,12 @@
-bower_components
-bower.json
-examples
-index-bower.js
-react-tween-state.sublime-*
+/.*
+
+/bower_components/
+/bower.json
+
+/examples/
+/index-bower.js
+# we expose the built lib/index.js
+/index.js
+
+/*.sublime-project
+/*.sublime-workspace

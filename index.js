@@ -19,6 +19,14 @@ let Mixin = {
     };
   },
 
+  componentDidMount: function() {
+    this.mounted = true;
+  },
+
+  componentWillUnmount: function() {
+    this.mounted = false;
+  },
+
   tweenState: function(path, {easing, duration, delay, beginValue, endValue, onEnd, stackBehavior: configSB}) {
     this.setState(state => {
       let cursor = state;
@@ -134,7 +142,7 @@ let Mixin = {
     }
 
     // onEnd might trigger a parent callback that removes this component
-    if (!this.isMounted()) {
+    if (!this.mounted) {
       return;
     }
 

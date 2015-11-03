@@ -35,8 +35,11 @@
     "babel-core": "^5.6.1",
     "babel-loader": "^5.1.4",
     "node-libs-browser": "^0.5.2",
-    "react": "^0.13.3",
     "webpack": "^1.9.11"
+  },
+  "peerDependencies": {
+     "react-dom": "^0.14.2",
+     "react": ">=0.14"
   },
   "dependencies": {
     "tween-functions": "^1.0.1"

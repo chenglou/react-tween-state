@@ -4,16 +4,17 @@ import requestAnimationFrame from 'raf';
 // additive is the new iOS 8 default. In most cases it simulates a physics-
 // looking overshoot behavior (especially with easeInOut. You can test that in
 // the example
-let DEFAULT_STACK_BEHAVIOR = 'ADDITIVE';
-let DEFAULT_EASING = easeInOutQuad;
-let DEFAULT_DURATION = 300;
-let DEFAULT_DELAY = 0;
+const DEFAULT_STACK_BEHAVIOR = 'ADDITIVE';
+const DEFAULT_EASING = easeInOutQuad;
+const DEFAULT_DURATION = 300;
+const DEFAULT_DELAY = 0;
 
-let stackBehavior = {
+const stackBehavior = {
   ADDITIVE: 'ADDITIVE',
   DESTRUCTIVE: 'DESTRUCTIVE',
 };
-let Mixin = {
+
+const Mixin = {
   _rafID: null,
 
   getInitialState() {
@@ -44,7 +45,7 @@ let Mixin = {
         pathHash = path.join('|');
       }
       // see the reasoning for these defaults at the top of file
-      let newConfig = {
+      const newConfig = {
         easing: easing || DEFAULT_EASING,
         duration: duration == null ? DEFAULT_DURATION : duration,
         delay: delay == null ? DEFAULT_DELAY : delay,
@@ -82,7 +83,7 @@ let Mixin = {
   },
 
   getTweeningValue(path) {
-    let state = this.state;
+    const state = this.state;
 
     let tweeningValue;
     let pathHash;
@@ -99,28 +100,28 @@ let Mixin = {
     let now = Date.now();
 
     for (let i = 0; i < state.tweenQueue.length; i++) {
-      let item = state.tweenQueue[i];
-      if (item.pathHash !== pathHash) {
+      const {pathHash: itemPathHash, initTime, config} = state.tweenQueue[i];
+      if (itemPathHash !== pathHash) {
         continue;
       }
 
-      let progressTime = now - item.initTime > item.config.duration ?
-        item.config.duration :
-        Math.max(0, now - item.initTime);
-      // `now - item.initTime` can be negative if initTime is scheduled in the
+      const progressTime = now - initTime > config.duration
+        ? config.duration
+        : Math.max(0, now - initTime);
+      // `now - initTime` can be negative if initTime is scheduled in the
       // future by a delay. In this case we take 0
 
       // if duration is 0, consider that as jumping to endValue directly. This
       // is needed because the easing functino might have undefined behavior for
       // duration = 0
-      let easeValue = item.config.duration === 0 ? item.config.endValue : item.config.easing(
+      const easeValue = config.duration === 0 ? config.endValue : config.easing(
         progressTime,
-        item.config.beginValue,
-        item.config.endValue,
-        item.config.duration,
+        config.beginValue,
+        config.endValue,
+        config.duration,
         // TODO: some funcs accept a 5th param
       );
-      let contrib = easeValue - item.config.endValue;
+      const contrib = easeValue - config.endValue;
       tweeningValue += contrib;
     }
 
@@ -128,20 +129,21 @@ let Mixin = {
   },
 
   _rafCb() {
-    let state = this.state;
+    const state = this.state;
     if (state.tweenQueue.length === 0) {
       return;
     }
 
-    let now = Date.now();
+    const now = Date.now();
     let newTweenQueue = [];
 
     for (let i = 0; i < state.tweenQueue.length; i++) {
-      let item = state.tweenQueue[i];
-      if (now - item.initTime < item.config.duration) {
+      const item = state.tweenQueue[i];
+      const {initTime, config} = item;
+      if (now - initTime < config.duration) {
         newTweenQueue.push(item);
       } else {
-        item.config.onEnd && item.config.onEnd();
+        config.onEnd && config.onEnd();
       }
     }
 

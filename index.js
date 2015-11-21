@@ -110,13 +110,17 @@ let Mixin = {
       // `now - item.initTime` can be negative if initTime is scheduled in the
       // future by a delay. In this case we take 0
 
-      let contrib = -item.config.endValue + item.config.easing(
+      // if duration is 0, consider that as jumping to endValue directly. This
+      // is needed because the easing functino might have undefined behavior for
+      // duration = 0
+      let easeValue = item.config.duration === 0 ? item.config.endValue : item.config.easing(
         progressTime,
         item.config.beginValue,
         item.config.endValue,
         item.config.duration,
         // TODO: some funcs accept a 5th param
       );
+      let contrib = easeValue - item.config.endValue;
       tweeningValue += contrib;
     }
 

@@ -14,10 +14,17 @@ let stackBehavior = {
   DESTRUCTIVE: 'DESTRUCTIVE',
 };
 let Mixin = {
+  _rafID: null,
+
   getInitialState: function() {
     return {
       tweenQueue: [],
     };
+  },
+
+  componentWillUnmount: function() {
+    requestAnimationFrame.cancel(this._rafID);
+    this._rafID = -1;
   },
 
   tweenState: function(path, {easing, duration, delay, beginValue, endValue, onEnd, stackBehavior: configSB}) {
@@ -66,7 +73,7 @@ let Mixin = {
       // we can stop worrying about nonesense like this
       cursor[stateName] = newConfig.endValue;
       if (newTweenQueue.length === 1) {
-        this.startRaf();
+        this._rafID = requestAnimationFrame(this._rafCb);
       }
 
       // this will also include the above mutated update
@@ -135,7 +142,8 @@ let Mixin = {
     }
 
     // onEnd might trigger a parent callback that removes this component
-    if (!this.isMounted()) {
+    // -1 means we've canceled it in componentWillUnmount
+    if (this._rafID === -1) {
       return;
     }
 
@@ -143,11 +151,7 @@ let Mixin = {
       tweenQueue: newTweenQueue,
     });
 
-    requestAnimationFrame(this._rafCb);
-  },
-
-  startRaf: function() {
-    requestAnimationFrame(this._rafCb);
+    this._rafID = requestAnimationFrame(this._rafCb);
   },
 };
 

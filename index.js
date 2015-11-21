@@ -1,4 +1,5 @@
 import easingTypes, {easeInOutQuad} from 'tween-functions';
+import requestAnimationFrame from 'raf';
 
 // additive is the new iOS 8 default. In most cases it simulates a physics-
 // looking overshoot behavior (especially with easeInOut. You can test that in

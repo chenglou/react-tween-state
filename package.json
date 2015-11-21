@@ -1,6 +1,6 @@
 {
   "name": "react-tween-state",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "React animation.",
   "main": "lib/index.js",
   "directories": {
@@ -38,10 +38,11 @@
     "webpack": "^1.9.11"
   },
   "peerDependencies": {
-     "react-dom": "^0.14.2",
-     "react": ">=0.14"
+    "react-dom": "^0.14.2",
+    "react": ">=0.14"
   },
   "dependencies": {
+    "raf": "^3.1.0",
     "tween-functions": "^1.0.1"
   }
 }

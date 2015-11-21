@@ -77,7 +77,7 @@ This first calls `setState` **and puts your fields straight to their final value
   - `onEnd`: the callback to trigger when the animation's done. **
   - `stackBehavior` (default: `stackBehavior.ADDITIVE`). Subsequent tween to the same state value will be stacked (added together). This gives a smooth tween effect that is iOS 8's new default. [This blog post](http://ronnqvi.st/multiple-animations/) describes it well. The other option is `stackBehavior.DESTRUCTIVE`, which replaces all current animations of that state value by this new one.
 
-\* For a destructive animation, starting the next one with a delay still immediately kills the previous tween. If that's not your intention, try `setTimeout` or additive animation. `DESTRUCTIVE` + `duration` 0 effectively cancels all in-flight animations.
+\* For a destructive animation, starting the next one with a delay still immediately kills the previous tween. If that's not your intention, try `setTimeout` or additive animation. `DESTRUCTIVE` + `duration` 0 effectively cancels all in-flight animations, **skipping the easing function**.
 
 \*\* For an additive animation, since the tweens stack and never get destroyed, the end callback is effectively fired at the end of `duration`.
 

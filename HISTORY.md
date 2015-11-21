@@ -2,6 +2,11 @@ Legend:
   - [I]: improvement
   - [F]: fix
 
+### 0.1.4 (November 21th 2015)
+- [I] Support for IE9 through `requestAnimationFrame` polyfill. a0b4fb5.
+- [I] Used to use `this.isMounted()` internally. Removed that since React might deprecate this. #49.
+- [F] If duration's 0, we jump to `config.endValue` immediately, rather than calling the easing function. #52.
+
 ### 0.1.3 (July 4th 2015)
 - [I] Export everything as default.
 

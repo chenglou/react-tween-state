@@ -16,18 +16,18 @@ let stackBehavior = {
 let Mixin = {
   _rafID: null,
 
-  getInitialState: function() {
+  getInitialState() {
     return {
       tweenQueue: [],
     };
   },
 
-  componentWillUnmount: function() {
+  componentWillUnmount() {
     requestAnimationFrame.cancel(this._rafID);
     this._rafID = -1;
   },
 
-  tweenState: function(path, {easing, duration, delay, beginValue, endValue, onEnd, stackBehavior: configSB}) {
+  tweenState(path, {easing, duration, delay, beginValue, endValue, onEnd, stackBehavior: configSB}) {
     this.setState(state => {
       let cursor = state;
       let stateName;
@@ -81,7 +81,7 @@ let Mixin = {
     });
   },
 
-  getTweeningValue: function(path) {
+  getTweeningValue(path) {
     let state = this.state;
 
     let tweeningValue;
@@ -123,7 +123,7 @@ let Mixin = {
     return tweeningValue;
   },
 
-  _rafCb: function() {
+  _rafCb() {
     let state = this.state;
     if (state.tweenQueue.length === 0) {
       return;

@@ -11,13 +11,13 @@ function translateXStyle(val) {
 export default React.createClass({
   mixins: [Mixin],
 
-  getInitialState: function() {
+  getInitialState() {
     return {
       blocks: [0, 0, 0],
     };
   },
 
-  handleTweenClick: function() {
+  handleTweenClick() {
     // If you want to update nested values in your state, pass an array path
     // instead of a string
 
@@ -47,7 +47,7 @@ export default React.createClass({
     // in-flight animations.
   },
 
-  render: function() {
+  render() {
     var block1Style = translateXStyle(this.getTweeningValue(['blocks', 0]));
     var block2Style = translateXStyle(this.getTweeningValue(['blocks', 1]));
     var block3Style = translateXStyle(this.getTweeningValue(['blocks', 2]));

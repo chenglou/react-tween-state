@@ -2,6 +2,9 @@ Legend:
   - [I]: improvement
   - [F]: fix
 
+### 0.1.5 (April 28th 2016)
+- [I] Move React and React-DOM dependencies to devDependencies. React-tween-state doesn't require React.
+
 ### 0.1.4 (November 21th 2015)
 - [I] Support for IE9 through `requestAnimationFrame` polyfill. a0b4fb5.
 - [I] Used to use `this.isMounted()` internally. Removed that since React might deprecate this. #49.

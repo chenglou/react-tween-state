@@ -74,7 +74,7 @@ const Mixin = {
       // we can stop worrying about nonesense like this
       cursor[stateName] = newConfig.endValue;
       if (newTweenQueue.length === 1) {
-        this._rafID = requestAnimationFrame(this._rafCb);
+        this._rafID = requestAnimationFrame(this._rafCb.bind(this));
       }
 
       // this will also include the above mutated update
@@ -157,7 +157,7 @@ const Mixin = {
       tweenQueue: newTweenQueue,
     });
 
-    this._rafID = requestAnimationFrame(this._rafCb);
+    this._rafID = requestAnimationFrame(this._rafCb.bind(this));
   },
 };
 

@@ -14,6 +14,8 @@ Bower:
 bower install react-tween-state
 ```
 
+**`react-tween-state` is incompatible with IE <= 9.0 and phantomjs. To polyfill use [raf (npm link)](https://www.npmjs.com/package/raf).**
+
 ## API
 
 Example usage:
